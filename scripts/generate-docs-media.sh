@@ -130,7 +130,7 @@ generate_demo() {
         --cols 80 \
         --rows 24 \
         --overwrite \
-        --command "dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --dry-run --solution $PROJECT_ROOT"
+        --command "dotnet run --project $PROJECT_ROOT/CPMigrate --framework net10.0 --no-build -- --dry-run --solution $PROJECT_ROOT"
 
     echo -e "${CYAN}[>] Converting demo to GIF...${NC}"
 
@@ -162,7 +162,7 @@ generate_analyze() {
         --cols 80 \
         --rows 24 \
         --overwrite \
-        --command "dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --analyze --solution $PROJECT_ROOT"
+        --command "dotnet run --project $PROJECT_ROOT/CPMigrate --framework net10.0 --no-build -- --analyze --solution $PROJECT_ROOT"
 
     echo -e "${CYAN}[>] Converting analyze to GIF...${NC}"
 
@@ -191,28 +191,27 @@ generate_interactive() {
     local EXPECT_SCRIPT="$TEMP_DIR/interactive.exp"
 
     # Create expect script for simulating user input through the wizard
-    # The wizard flow is:
-    # 1. Mode: "Migrate to Central Package Management" (first option - Enter)
+    # Since this project already has Directory.Packages.props, it will show
+    # the "already migrated" message. We show the Analyze flow instead which
+    # demonstrates the interactive UI perfectly.
+    # Flow:
+    # 1. Mode: "Analyze packages for issues" (second option - Down+Enter)
     # 2. Solution: CPMigrate.sln is auto-detected (first option - Enter)
-    # 3. Conflict: "Highest version" (first option - Enter)
-    # 4. Backup: "Yes (recommended)" (first option - Enter)
-    # 5. Backup dir: text input "./cpm-backup"
-    # 6. Gitignore: "No" (second option - Down+Enter)
-    # 7. Dry run: "Yes - preview" (first option - Enter)
-    # 8. Keep attrs: "No - remove them" (first option - Enter)
-    # 9. Confirm: "y"
+    # 3. Confirm: "y"
     cat > "$EXPECT_SCRIPT" << 'EXPECT_EOF'
 #!/usr/bin/expect -f
 set timeout 60
 set project_root [lindex $argv 0]
 
 # Spawn cpmigrate in interactive mode
-spawn dotnet run --project $project_root/CPMigrate --framework net9.0 --no-build
+spawn dotnet run --project $project_root/CPMigrate --framework net10.0 --no-build
 
 # Wait for header to render
 sleep 3
 
-# Mode selection - Enter for first option (Migrate)
+# Mode selection - Down arrow then Enter for Analyze
+send "\033\[B"
+sleep 0.3
 send "\r"
 sleep 1.5
 
@@ -230,38 +229,6 @@ expect {
     }
 }
 
-# Conflict strategy - Enter for Highest
-expect "Conflict"
-send "\r"
-sleep 1.5
-
-# Create backup - Enter for Yes
-expect "backup"
-send "\r"
-sleep 1.5
-
-# Backup directory - type path and Enter
-expect "Backup directory"
-send "./cpm-backup\r"
-sleep 1.5
-
-# Add to gitignore - Down arrow then Enter for No
-expect "gitignore"
-send "\033\[B"
-sleep 0.3
-send "\r"
-sleep 1.5
-
-# Dry run - Enter for Yes
-expect "dry-run"
-send "\r"
-sleep 1.5
-
-# Keep attributes - Enter for No (remove them)
-expect "version attributes"
-send "\r"
-sleep 1.5
-
 # Wait for summary to render
 sleep 2
 
@@ -269,7 +236,7 @@ sleep 2
 expect "Proceed"
 send "y\r"
 
-# Wait for migration to complete
+# Wait for analysis to complete
 expect {
     eof { }
     timeout { }

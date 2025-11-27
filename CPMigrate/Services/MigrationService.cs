@@ -65,6 +65,19 @@ public class MigrationService
             return await ExecuteAnalysisAsync(options);
         }
 
+        // Check if already migrated to CPM
+        var outputDir = string.IsNullOrEmpty(options.OutputDir) ? "." : options.OutputDir;
+        var propsPath = Path.Combine(Path.GetFullPath(outputDir), "Directory.Packages.props");
+        if (File.Exists(propsPath))
+        {
+            _consoleService.Warning("This solution has already been migrated to Central Package Management.");
+            _consoleService.WriteMarkup($"[dim]Found existing:[/] [cyan]{Markup.Escape(propsPath)}[/]\n");
+            _consoleService.WriteLine();
+            _consoleService.Info("To re-migrate, first rollback with: cpmigrate --rollback");
+            _consoleService.Info("To analyze packages, use: cpmigrate --analyze");
+            return new MigrationResult { ExitCode = ExitCodes.Success, PropsFilePath = propsPath };
+        }
+
         // Dry-run banner
         if (options.DryRun)
         {

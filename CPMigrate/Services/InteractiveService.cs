@@ -42,6 +42,7 @@ public class InteractiveService : IInteractiveService
                 return null;
             }
             options.SolutionFileDir = solutionPath;
+            options.OutputDir = solutionPath; // Directory.Packages.props goes in the same location
 
             // Step 3: Mode-specific options
             switch (mode)
