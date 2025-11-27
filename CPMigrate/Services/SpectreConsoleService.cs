@@ -7,6 +7,18 @@ public class SpectreConsoleService : IConsoleService
 {
     private readonly VersionResolver _versionResolver;
 
+    // Cyberpunk color palette
+    private static class CyberColors
+    {
+        public static readonly Color Primary = Color.Magenta1;      // Hot pink/magenta
+        public static readonly Color Secondary = Color.Cyan1;       // Electric cyan
+        public static readonly Color Success = Color.Green1;        // Neon green
+        public static readonly Color Warning = Color.Orange1;       // Amber
+        public static readonly Color Error = Color.Red1;            // Crimson
+        public static readonly Color Dim = Color.Grey;              // Muted
+        public static readonly Color Accent = Color.Yellow;         // Highlight
+    }
+
     public SpectreConsoleService(VersionResolver versionResolver)
     {
         _versionResolver = versionResolver;
@@ -14,27 +26,27 @@ public class SpectreConsoleService : IConsoleService
 
     public void Info(string message)
     {
-        AnsiConsole.MarkupLine($"[grey]{EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"[grey][[>]][/] [dim]{EscapeMarkup(message)}[/]");
     }
 
     public void Success(string message)
     {
-        AnsiConsole.MarkupLine($"[green]:check_mark: {EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"[green1][[▓▓▓]][/] [white]{EscapeMarkup(message)}[/]");
     }
 
     public void Warning(string message)
     {
-        AnsiConsole.MarkupLine($"[yellow]:warning: {EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"[orange1][[!]][/] [yellow]░░░ WARNING ░░░[/] [white]{EscapeMarkup(message)}[/]");
     }
 
     public void Error(string message)
     {
-        AnsiConsole.MarkupLine($"[red]:cross_mark: {EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"[red1][[X]][/] [red]▓▓▓ ERROR ▓▓▓[/] [white]{EscapeMarkup(message)}[/]");
     }
 
     public void Highlight(string message)
     {
-        AnsiConsole.MarkupLine($"[cyan]{EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"[magenta1]>>> {EscapeMarkup(message)} <<<[/]");
     }
 
     public void Dim(string message)
@@ -44,17 +56,26 @@ public class SpectreConsoleService : IConsoleService
 
     public void DryRun(string message)
     {
-        AnsiConsole.MarkupLine($"  [blue]:eye: [[DRY-RUN]][/] [grey]{EscapeMarkup(message)}[/]");
+        AnsiConsole.MarkupLine($"  [cyan1][[◉]][/] [blue]<< SIMULATION >>[/] [grey]{EscapeMarkup(message)}[/]");
     }
 
     public void WriteHeader()
     {
-        var header = new FigletText("CPMigrate")
-            .Color(Color.Cyan1)
-            .Centered();
-
-        AnsiConsole.Write(header);
-        AnsiConsole.MarkupLine("[dim]Central Package Management Migration Tool[/]");
+        // Cyberpunk ASCII art header
+        AnsiConsole.MarkupLine("[magenta1] ▄████▄   ██▓███   ███▄ ▄███▓ ██▓  ▄████  ██▀███   ▄▄▄     ▄▄▄█████▓▓█████[/]");
+        AnsiConsole.MarkupLine("[magenta1]▒██▀ ▀█  ▓██░  ██▒▓██▒▀█▀ ██▒▓██▒ ██▒ ▀█▒▓██ ▒ ██▒▒████▄   ▓  ██▒ ▓▒▓█   ▀[/]");
+        AnsiConsole.MarkupLine("[magenta1]▒▓█    ▄ ▓██░ ██▓▒▓██    ▓██░▒██▒▒██░▄▄▄░▓██ ░▄█ ▒▒██  ▀█▄ ▒ ▓██░ ▒░▒███[/]");
+        AnsiConsole.MarkupLine("[magenta1]▒▓▓▄ ▄██▒▒██▄█▓▒ ▒▒██    ▒██ ░██░░▓█  ██▓▒██▀▀█▄  ░██▄▄▄▄██░ ▓██▓ ░ ▒▓█  ▄[/]");
+        AnsiConsole.MarkupLine("[magenta1]▒ ▓███▀ ░▒██▒ ░  ░▒██▒   ░██▒░██░░▒▓███▀▒░██▓ ▒██▒ ▓█   ▓██▒ ▒██▒ ░ ░▒████▒[/]");
+        AnsiConsole.MarkupLine("[dim]░ ░▒ ▒  ░░▒▒ ░ ░ ░░ ▒░   ░  ░░▓   ░▒   ▒ ░ ▒▓ ░▒▓░ ▒▒   ▓▒█░ ▒ ░░   ░░ ▒░ ░[/]");
+        AnsiConsole.MarkupLine("[dim]  ░  ▒   ░░▒ ░    ░  ░      ░ ▒ ░  ░   ░   ░▒ ░ ▒░  ▒   ▒▒ ░   ░     ░ ░  ░[/]");
+        AnsiConsole.MarkupLine("[dim]░        ░░       ░      ░    ▒ ░░ ░   ░   ░░   ░   ░   ▒    ░         ░[/]");
+        AnsiConsole.MarkupLine("[dim]░ ░               ░      ░    ░        ░    ░           ░  ░           ░  ░[/]");
+        AnsiConsole.MarkupLine("[dim]░[/]");
+        AnsiConsole.MarkupLine("[dim]═══════════════════════════════════════════════════════════════════════════[/]");
+        AnsiConsole.MarkupLine("[cyan1]              CENTRAL PACKAGE MANAGEMENT MIGRATION TOOL[/]");
+        AnsiConsole.MarkupLine("[dim]                        >>> SYSTEM INITIALIZED <<<[/]");
+        AnsiConsole.MarkupLine("[dim]═══════════════════════════════════════════════════════════════════════════[/]");
         AnsiConsole.WriteLine();
     }
 
@@ -63,7 +84,7 @@ public class SpectreConsoleService : IConsoleService
         var panel = new Panel(new Markup($"[white]{EscapeMarkup(message)}[/]"))
         {
             Border = BoxBorder.Double,
-            BorderStyle = new Style(Color.Cyan1),
+            BorderStyle = new Style(CyberColors.Primary),
             Padding = new Padding(2, 0)
         };
         AnsiConsole.Write(panel);
@@ -71,41 +92,34 @@ public class SpectreConsoleService : IConsoleService
 
     public void Separator()
     {
-        AnsiConsole.Write(new Rule().RuleStyle("dim"));
+        AnsiConsole.MarkupLine("[dim]═══════════════════════════════════════════════════════════════════════════[/]");
     }
 
     public void WriteConflictsTable(Dictionary<string, HashSet<string>> packageVersions,
         List<string> conflicts, ConflictStrategy strategy)
     {
         var table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.Yellow)
-            .Title("[yellow]:warning: Version Conflicts Detected[/]")
-            .AddColumn(new TableColumn("[bold]Package[/]").Centered())
-            .AddColumn(new TableColumn("[bold]Versions Found[/]").Centered())
-            .AddColumn(new TableColumn("[bold]Resolved To[/]").Centered());
+            .Border(TableBorder.Double)
+            .BorderColor(CyberColors.Warning)
+            .Title("[yellow]▓▓▓ VERSION CONFLICTS DETECTED ▓▓▓[/]")
+            .AddColumn(new TableColumn("[bold white]PACKAGE[/]").Centered())
+            .AddColumn(new TableColumn("[bold white]VERSIONS[/]").Centered())
+            .AddColumn(new TableColumn("[bold white]RESOLVED[/]").Centered());
 
         foreach (var packageName in conflicts)
         {
-            // Using NuGet.Versioning through VersionResolver logic, but we need to expose parsing or replicate sorting
-            // Since VersionResolver now uses NuGetVersion internally, we should probably assume the strings are comparable or use the resolver to help.
-            // The previous code used VersionResolver.ParseVersion (static) to sort.
-            // I removed ParseVersion static method.
-            // I should probably add a helper to VersionResolver or just trust string sort? No, versions are semantic.
-            // I will rely on the VersionResolver to resolve, but for displaying the list...
-            // I can't sort easily without parsing.
-            // I'll parse here locally using NuGetVersion since I have the package now.
-            
-            var versions = packageVersions[packageName].OrderByDescending(v => NuGet.Versioning.NuGetVersion.Parse(v)).ToList();
+            var versions = packageVersions[packageName]
+                .OrderByDescending(v => NuGet.Versioning.NuGetVersion.Parse(v))
+                .ToList();
             var resolvedVersion = _versionResolver.ResolveVersion(versions, strategy);
 
             var versionList = string.Join("\n", versions.Select(v =>
-                v == resolvedVersion ? $"[green]{v}[/]" : $"[dim]{v}[/]"));
+                v == resolvedVersion ? $"[green1]{v}[/]" : $"[dim]{v}[/]"));
 
             table.AddRow(
                 $"[white]{EscapeMarkup(packageName)}[/]",
                 versionList,
-                $"[green]{resolvedVersion}[/] [dim]({strategy})[/]"
+                $"[green1]>> {resolvedVersion} <<[/]"
             );
         }
 
@@ -117,56 +131,89 @@ public class SpectreConsoleService : IConsoleService
     public void WriteSummaryTable(int projectCount, int packageCount, int conflictCount,
         string propsFilePath, string? backupPath, bool wasDryRun)
     {
-        var table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(wasDryRun ? Color.Cyan1 : Color.Green)
-            .AddColumn(new TableColumn("[bold]Metric[/]"))
-            .AddColumn(new TableColumn("[bold]Value[/]").RightAligned());
-
-        table.AddRow("Projects processed", $"[white]{projectCount}[/]");
-        table.AddRow("Packages centralized", $"[white]{packageCount}[/]");
-
-        if (conflictCount > 0)
-        {
-            table.AddRow("Conflicts resolved", $"[yellow]{conflictCount}[/]");
-        }
-
-        table.AddRow("Output file", $"[cyan]{EscapeMarkup(propsFilePath)}[/]");
-
-        if (!string.IsNullOrEmpty(backupPath))
-        {
-            table.AddRow("Backup location", $"[dim]{EscapeMarkup(backupPath)}[/]");
-        }
-
         AnsiConsole.WriteLine();
 
         if (wasDryRun)
         {
-            AnsiConsole.MarkupLine("[cyan]:eye: DRY-RUN COMPLETE[/] - [dim]No changes were made[/]");
-            AnsiConsole.MarkupLine($"[dim]Run without --dry-run to apply changes[/]");
+            // Dry-run simulation panel
+            var contentLines = new List<string>
+            {
+                "[cyan1]░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░[/]",
+                "[cyan1]░░ SIMULATION COMPLETE ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░[/]",
+                "[cyan1]░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░[/]",
+                "",
+                $"[white]  Projects Scanned        [/][cyan1]>> {projectCount} <<[/]",
+                $"[white]  Packages Found          [/][cyan1]>> {packageCount} <<[/]"
+            };
+
+            if (conflictCount > 0)
+            {
+                contentLines.Add($"[white]  Conflicts Detected      [/][yellow]>> {conflictCount} <<[/]");
+            }
+
+            contentLines.Add($"[white]  Output File             [/][dim]{EscapeMarkup(propsFilePath)}[/]");
+            contentLines.Add("");
+            contentLines.Add("[cyan1][[◉]][/] [dim]No changes written to disk[/]");
+            contentLines.Add("[cyan1][[◉]][/] [dim]Run without --dry-run to execute[/]");
+
+            var simPanel = new Panel(new Markup(string.Join("\n", contentLines)))
+            {
+                Border = BoxBorder.Double,
+                BorderStyle = new Style(CyberColors.Secondary),
+                Padding = new Padding(2, 1)
+            };
+            AnsiConsole.Write(simPanel);
         }
         else
         {
-            AnsiConsole.MarkupLine("[green]:party_popper: Migration completed successfully![/]");
-        }
+            // Success panel
+            var contentLines = new List<string>
+            {
+                "[green1]▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄[/]",
+                "[green1]██ MIGRATION COMPLETE ██████████████████████████████████████████[/]",
+                "[green1]▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀[/]",
+                "",
+                $"[white]  Projects Processed      [/][green1]>> {projectCount} <<[/]",
+                $"[white]  Packages Centralized    [/][green1]>> {packageCount} <<[/]"
+            };
 
-        AnsiConsole.WriteLine();
-        AnsiConsole.Write(table);
+            if (conflictCount > 0)
+            {
+                contentLines.Add($"[white]  Conflicts Resolved      [/][yellow]>> {conflictCount} <<[/]");
+            }
+
+            contentLines.Add($"[white]  Output File             [/][cyan1]{EscapeMarkup(propsFilePath)}[/]");
+
+            if (!string.IsNullOrEmpty(backupPath))
+            {
+                contentLines.Add($"[white]  Backup Location         [/][dim]{EscapeMarkup(backupPath)}[/]");
+            }
+
+            contentLines.Add("");
+            contentLines.Add("[green1][[▓▓▓]][/] [white]STATUS: ALL SYSTEMS NOMINAL[/]");
+
+            var successPanel = new Panel(new Markup(string.Join("\n", contentLines)))
+            {
+                Border = BoxBorder.Double,
+                BorderStyle = new Style(CyberColors.Success),
+                Padding = new Padding(2, 1)
+            };
+            AnsiConsole.Write(successPanel);
+        }
     }
 
     public void WriteProjectTree(List<string> projectPaths, string basePath)
     {
-        var root = new Tree($"[cyan]:file_folder: {EscapeMarkup(Path.GetFileName(basePath))}[/]")
+        AnsiConsole.MarkupLine("[cyan1][[>]] PROJECT SCAN RESULTS[/]");
+        AnsiConsole.MarkupLine("[dim]───────────────────────────────────────────[/]");
+
+        var root = new Tree($"[magenta1]{EscapeMarkup(Path.GetFileName(basePath))}[/]")
             .Style("dim");
 
         foreach (var projectPath in projectPaths)
         {
-            var relativePath = Path.GetRelativePath(basePath, projectPath);
-            var parts = relativePath.Split(Path.DirectorySeparatorChar);
-
-            // Simplified tree building for now, matching original
             var projectName = Path.GetFileName(projectPath);
-            root.AddNode($"[green]:package: {EscapeMarkup(projectName)}[/]");
+            root.AddNode($"[green1]├── {EscapeMarkup(projectName)}[/]");
         }
 
         AnsiConsole.Write(root);
@@ -177,9 +224,9 @@ public class SpectreConsoleService : IConsoleService
     {
         var panel = new Panel(new Text(content))
         {
-            Header = new PanelHeader("[cyan]Directory.Packages.props[/]"),
-            Border = BoxBorder.Rounded,
-            BorderStyle = new Style(Color.Grey),
+            Header = new PanelHeader("[cyan1]Directory.Packages.props[/]"),
+            Border = BoxBorder.Double,
+            BorderStyle = new Style(CyberColors.Dim),
             Padding = new Padding(1)
         };
 
@@ -200,35 +247,35 @@ public class SpectreConsoleService : IConsoleService
     {
         var selection = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title($"[yellow]{EscapeMarkup(title)}[/]")
+                .Title($"[magenta1]>>> {EscapeMarkup(title)} <<<[/]")
                 .PageSize(10)
-                .HighlightStyle(new Style(Color.Cyan1))
+                .HighlightStyle(new Style(CyberColors.Secondary))
                 .AddChoices(choices));
         return selection;
     }
 
     public bool AskConfirmation(string message)
     {
-        return AnsiConsole.Confirm($"[yellow]{EscapeMarkup(message)}[/]", defaultValue: false);
+        return AnsiConsole.Confirm($"[magenta1]>>> {EscapeMarkup(message)} <<<[/]", defaultValue: false);
     }
 
     public void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath)
     {
         var table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.Yellow)
-            .Title("[yellow]:leftwards_arrow_with_hook: Rollback Preview[/]")
-            .AddColumn(new TableColumn("[bold]Action[/]"))
-            .AddColumn(new TableColumn("[bold]File[/]"));
+            .Border(TableBorder.Double)
+            .BorderColor(CyberColors.Warning)
+            .Title("[yellow]▓▓▓ ROLLBACK PREVIEW ▓▓▓[/]")
+            .AddColumn(new TableColumn("[bold white]ACTION[/]"))
+            .AddColumn(new TableColumn("[bold white]FILE[/]"));
 
         foreach (var file in filesToRestore)
         {
-            table.AddRow("[green]Restore[/]", $"[white]{EscapeMarkup(file)}[/]");
+            table.AddRow("[green1]RESTORE[/]", $"[white]{EscapeMarkup(file)}[/]");
         }
 
         if (!string.IsNullOrEmpty(propsFilePath))
         {
-            table.AddRow("[red]Delete[/]", $"[white]{EscapeMarkup(propsFilePath)}[/]");
+            table.AddRow("[red1]DELETE[/]", $"[white]{EscapeMarkup(propsFilePath)}[/]");
         }
 
         AnsiConsole.WriteLine();
@@ -238,12 +285,13 @@ public class SpectreConsoleService : IConsoleService
 
     public void WriteAnalysisHeader(int projectCount, int packageCount)
     {
-        var panel = new Panel(new Markup($"[white]Scanned [cyan]{projectCount}[/] project(s), [cyan]{packageCount}[/] package reference(s)[/]"))
+        var panel = new Panel(new Markup(
+            "[magenta1]▓▓▓ ANALYSIS MODE ▓▓▓[/]\n\n" +
+            $"[white]Scanning [cyan1]{projectCount}[/] project(s), [cyan1]{packageCount}[/] package reference(s)[/]"))
         {
-            Header = new PanelHeader("[cyan]CPMigrate Analysis[/]"),
-            Border = BoxBorder.Rounded,
-            BorderStyle = new Style(Color.Cyan1),
-            Padding = new Padding(2, 0)
+            Border = BoxBorder.Double,
+            BorderStyle = new Style(CyberColors.Primary),
+            Padding = new Padding(2, 1)
         };
         AnsiConsole.Write(panel);
         AnsiConsole.WriteLine();
@@ -254,11 +302,11 @@ public class SpectreConsoleService : IConsoleService
         if (result.HasIssues)
         {
             var table = new Table()
-                .Border(TableBorder.Rounded)
-                .BorderColor(Color.Yellow)
-                .Title($"[yellow]:warning: {EscapeMarkup(result.AnalyzerName)} ({result.Issues.Count} found)[/]")
-                .AddColumn(new TableColumn("[bold]Package[/]"))
-                .AddColumn(new TableColumn("[bold]Details[/]"));
+                .Border(TableBorder.Double)
+                .BorderColor(CyberColors.Warning)
+                .Title($"[yellow][[!]] {EscapeMarkup(result.AnalyzerName)} ({result.Issues.Count} found)[/]")
+                .AddColumn(new TableColumn("[bold white]PACKAGE[/]"))
+                .AddColumn(new TableColumn("[bold white]DETAILS[/]"));
 
             foreach (var issue in result.Issues)
             {
@@ -273,7 +321,7 @@ public class SpectreConsoleService : IConsoleService
         }
         else
         {
-            AnsiConsole.MarkupLine($"[green]:check_mark: {EscapeMarkup(result.AnalyzerName)}[/] - [dim]No issues found[/]");
+            AnsiConsole.MarkupLine($"[green1][[▓▓▓]][/] [white]{EscapeMarkup(result.AnalyzerName)}[/] [dim]- No issues[/]");
         }
     }
 
@@ -283,11 +331,11 @@ public class SpectreConsoleService : IConsoleService
 
         if (report.HasIssues)
         {
-            AnsiConsole.MarkupLine($"[yellow]:warning: Analysis complete: {report.TotalIssues} issue(s) found[/]");
+            AnsiConsole.MarkupLine($"[yellow][[!]] ANALYSIS COMPLETE: {report.TotalIssues} issue(s) detected[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine("[green]:party_popper: Analysis complete: No issues found![/]");
+            AnsiConsole.MarkupLine("[green1][[▓▓▓]] ANALYSIS COMPLETE: ALL SYSTEMS NOMINAL[/]");
         }
     }
 

@@ -1,9 +1,12 @@
 # CPMigrate
 
-A beautiful CLI tool to migrate .NET solutions to [Central Package Management (CPM)](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management).
+A stunning CLI tool to migrate .NET solutions to [Central Package Management (CPM)](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management).
 
 ![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![NuGet](https://img.shields.io/nuget/v/CPMigrate.svg)](https://www.nuget.org/packages/CPMigrate/)
+
+![CPMigrate Demo](./docs/images/cpmigrate-demo.gif)
 
 ## Features
 
@@ -12,7 +15,7 @@ A beautiful CLI tool to migrate .NET solutions to [Central Package Management (C
 - **Package Analysis** - Scan for package issues without migrating (version inconsistencies, duplicates, redundant references)
 - **Dry-Run Mode** - Preview changes before applying them
 - **Rollback Support** - Undo migrations and restore original project files
-- **Beautiful Terminal UI** - Progress bars, colored output, and ASCII art
+- **Cyberpunk Terminal UI** - Stunning neon-styled interface with progress bars and ASCII art
 - **Cross-Platform** - Works on Windows, macOS, and Linux
 - **Backup Support** - Automatically backs up project files before modification
 
@@ -148,26 +151,48 @@ Central Package Management (CPM) is a NuGet feature that allows you to manage al
 
 ## Screenshots
 
-![Main Interface](./docs/images/main-interface.png)
-*The main migration interface showing progress bars and status.*
+### Migration Mode
 
-![Version Conflicts](./docs/images/conflict-resolution.png)
-*Automatic detection and resolution of package version conflicts.*
+![CPMigrate Demo](./docs/images/cpmigrate-demo.gif)
 
-![Dry Run](./docs/images/dry-run.png)
-*Dry-run mode previewing changes without modifying files.*
+*Dry-run mode previewing changes with the cyberpunk-styled terminal UI.*
 
-The tool features a beautiful terminal UI with:
+### Package Analysis
 
-- ASCII art header
-- Progress bars during migration
-- Colored output for different message types
-- Tables showing version conflicts and resolution
-- Summary statistics after migration
+![CPMigrate Analyze](./docs/images/cpmigrate-analyze.gif)
+
+*Analyze mode scanning for package issues without modifying files.*
+
+### Terminal UI Features
+
+The tool features a stunning cyberpunk-inspired terminal UI with:
+
+- Neon ASCII art header with magenta/cyan color scheme
+- Animated progress bars during project scanning
+- Status indicators: `[▓▓▓]` success, `[!]` warning, `[X]` error
+- Rich panel displays for file previews and summaries
+- Simulation mode visual cues for dry-run operations
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Regenerating Documentation Media
+
+To regenerate the GIFs and screenshots for the README:
+
+```bash
+# Prerequisites
+brew install asciinema agg
+
+# Generate all documentation media
+./scripts/generate-docs-media.sh
+
+# Options
+./scripts/generate-docs-media.sh --skip-build    # Skip dotnet build
+./scripts/generate-docs-media.sh --demo-only     # Only generate demo GIF
+./scripts/generate-docs-media.sh --analyze-only  # Only generate analyze GIF
+```
 
 ## License
 
