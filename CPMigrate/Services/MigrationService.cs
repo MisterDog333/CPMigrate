@@ -274,7 +274,8 @@ public class MigrationService
         Dictionary<string, HashSet<string>> packages)
     {
         var updatedPackagePropsContent = _propsGenerator.Generate(packages, options.ConflictStrategy);
-        var outputPath = Path.GetFullPath(options.OutputDir);
+        var outputDir = string.IsNullOrEmpty(options.OutputDir) ? "." : options.OutputDir;
+        var outputPath = Path.GetFullPath(outputDir);
         var propsFilePath = Path.Combine(outputPath, "Directory.Packages.props");
 
         if (options.DryRun)
