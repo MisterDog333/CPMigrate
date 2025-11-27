@@ -119,18 +119,18 @@ generate_demo() {
         --cols 80 \
         --rows 24 \
         --overwrite \
-        --command "sleep 1; dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --dry-run --solution $PROJECT_ROOT; sleep 3"
+        --command "sleep 2; dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --dry-run --solution $PROJECT_ROOT; sleep 5"
 
     echo -e "${CYAN}[>] Converting demo to GIF...${NC}"
 
-    # Convert to GIF with cyberpunk-friendly settings (slowed down for readability)
+    # Convert to GIF with cyberpunk-friendly settings (very slow for readability)
     agg "$CAST_FILE" "$GIF_FILE" \
         --cols 80 \
         --rows 24 \
         --font-size 14 \
-        --idle-time-limit 3.0 \
-        --speed 0.5 \
-        --last-frame-duration 5
+        --idle-time-limit 5.0 \
+        --speed 0.25 \
+        --last-frame-duration 8
 
     echo -e "${GREEN}[OK] Demo GIF created: $GIF_FILE${NC}"
 }
@@ -152,18 +152,18 @@ generate_analyze() {
         --cols 80 \
         --rows 24 \
         --overwrite \
-        --command "sleep 1; dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --analyze --solution $PROJECT_ROOT; sleep 3"
+        --command "sleep 2; dotnet run --project $PROJECT_ROOT/CPMigrate --framework net9.0 --no-build -- --analyze --solution $PROJECT_ROOT; sleep 5"
 
     echo -e "${CYAN}[>] Converting analyze to GIF...${NC}"
 
-    # Convert to GIF (slowed down for readability)
+    # Convert to GIF (very slow for readability)
     agg "$CAST_FILE" "$GIF_FILE" \
         --cols 80 \
         --rows 24 \
         --font-size 14 \
-        --idle-time-limit 3.0 \
-        --speed 0.5 \
-        --last-frame-duration 5
+        --idle-time-limit 5.0 \
+        --speed 0.25 \
+        --last-frame-duration 8
 
     echo -e "${GREEN}[OK] Analyze GIF created: $GIF_FILE${NC}"
 }
