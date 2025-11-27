@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CPMigrate.Models;
 using Microsoft.Build.Construction;
 
 namespace CPMigrate.Services;
@@ -144,6 +145,46 @@ public partial class ProjectAnalyzer
         }
 
         return projectRoot.RawXml;
+    }
+
+    /// <summary>
+    /// Scans a project file to extract all package references without modifying the file.
+    /// Used for analysis mode.
+    /// </summary>
+    /// <param name="projectFilePath">Full path to the .csproj file.</param>
+    /// <returns>List of package references found in the project.</returns>
+    public List<PackageReference> ScanProjectPackages(string projectFilePath)
+    {
+        var references = new List<PackageReference>();
+        var projectName = Path.GetFileName(projectFilePath);
+
+        try
+        {
+            var projectRoot = ProjectRootElement.Open(projectFilePath);
+
+            foreach (var item in projectRoot.Items)
+            {
+                if (item.ItemType == "PackageReference")
+                {
+                    var versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == "Version");
+                    if (versionMetadata != null && !string.IsNullOrEmpty(versionMetadata.Value))
+                    {
+                        references.Add(new PackageReference(
+                            item.Include,
+                            versionMetadata.Value,
+                            projectFilePath,
+                            projectName
+                        ));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _consoleService.Warning($"Could not scan {projectName}: {ex.Message}");
+        }
+
+        return references;
     }
 
     /// <summary>

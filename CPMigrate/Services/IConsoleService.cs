@@ -1,3 +1,5 @@
+using CPMigrate.Models;
+
 namespace CPMigrate.Services;
 
 public interface IConsoleService
@@ -21,4 +23,7 @@ public interface IConsoleService
     string AskSelection(string title, IEnumerable<string> choices);
     bool AskConfirmation(string message);
     void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath);
+    void WriteAnalysisHeader(int projectCount, int packageCount);
+    void WriteAnalyzerResult(AnalyzerResult result);
+    void WriteAnalysisSummary(AnalysisReport report);
 }

@@ -1,3 +1,4 @@
+using CPMigrate.Models;
 using Spectre.Console;
 
 namespace CPMigrate.Services;
@@ -233,6 +234,61 @@ public class SpectreConsoleService : IConsoleService
         AnsiConsole.WriteLine();
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
+    }
+
+    public void WriteAnalysisHeader(int projectCount, int packageCount)
+    {
+        var panel = new Panel(new Markup($"[white]Scanned [cyan]{projectCount}[/] project(s), [cyan]{packageCount}[/] package reference(s)[/]"))
+        {
+            Header = new PanelHeader("[cyan]CPMigrate Analysis[/]"),
+            Border = BoxBorder.Rounded,
+            BorderStyle = new Style(Color.Cyan1),
+            Padding = new Padding(2, 0)
+        };
+        AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
+    }
+
+    public void WriteAnalyzerResult(AnalyzerResult result)
+    {
+        if (result.HasIssues)
+        {
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderColor(Color.Yellow)
+                .Title($"[yellow]:warning: {EscapeMarkup(result.AnalyzerName)} ({result.Issues.Count} found)[/]")
+                .AddColumn(new TableColumn("[bold]Package[/]"))
+                .AddColumn(new TableColumn("[bold]Details[/]"));
+
+            foreach (var issue in result.Issues)
+            {
+                table.AddRow(
+                    $"[white]{EscapeMarkup(issue.PackageName)}[/]",
+                    $"[dim]{EscapeMarkup(issue.Description)}[/]"
+                );
+            }
+
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[green]:check_mark: {EscapeMarkup(result.AnalyzerName)}[/] - [dim]No issues found[/]");
+        }
+    }
+
+    public void WriteAnalysisSummary(AnalysisReport report)
+    {
+        AnsiConsole.WriteLine();
+
+        if (report.HasIssues)
+        {
+            AnsiConsole.MarkupLine($"[yellow]:warning: Analysis complete: {report.TotalIssues} issue(s) found[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine("[green]:party_popper: Analysis complete: No issues found![/]");
+        }
     }
 
     private static string EscapeMarkup(string text)

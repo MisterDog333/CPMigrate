@@ -1,3 +1,4 @@
+using CPMigrate.Analyzers;
 using CPMigrate.Models;
 using Spectre.Console;
 
@@ -13,19 +14,22 @@ public class MigrationService
     private readonly PropsGenerator _propsGenerator;
     private readonly BackupManager _backupManager;
     private readonly IConsoleService _consoleService;
+    private readonly AnalysisService _analysisService;
 
     public MigrationService(
         IConsoleService consoleService,
         ProjectAnalyzer? projectAnalyzer = null,
         VersionResolver? versionResolver = null,
         PropsGenerator? propsGenerator = null,
-        BackupManager? backupManager = null)
+        BackupManager? backupManager = null,
+        AnalysisService? analysisService = null)
     {
         _consoleService = consoleService;
         _versionResolver = versionResolver ?? new VersionResolver();
         _projectAnalyzer = projectAnalyzer ?? new ProjectAnalyzer(_consoleService);
         _propsGenerator = propsGenerator ?? new PropsGenerator(_versionResolver);
         _backupManager = backupManager ?? new BackupManager();
+        _analysisService = analysisService ?? new AnalysisService();
     }
 
     /// <summary>
@@ -53,6 +57,12 @@ public class MigrationService
         if (options.Rollback)
         {
             return await ExecuteRollbackAsync(options);
+        }
+
+        // Handle analyze mode
+        if (options.Analyze)
+        {
+            return await ExecuteAnalysisAsync(options);
         }
 
         // Dry-run banner
@@ -393,6 +403,90 @@ public class MigrationService
         {
             ProjectsProcessed = restoredCount,
             ExitCode = failedCount == 0 ? ExitCodes.Success : ExitCodes.FileOperationError
+        };
+    }
+
+    /// <summary>
+    /// Executes package analysis without modifying files.
+    /// </summary>
+    /// <param name="options">Options containing project/solution path.</param>
+    /// <returns>Migration result with exit code based on issues found.</returns>
+    private async Task<MigrationResult> ExecuteAnalysisAsync(Options options)
+    {
+        _consoleService.Banner("ANALYZE MODE - Scanning for package issues");
+        _consoleService.WriteLine();
+
+        // Discover projects
+        var (basePath, projectPaths) = await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .SpinnerStyle(Style.Parse("cyan"))
+            .StartAsync("Discovering projects...", async ctx =>
+            {
+                await Task.Delay(100);
+                return DiscoverProjects(options);
+            });
+
+        if (projectPaths.Count == 0)
+        {
+            _consoleService.Error("No projects found to analyze.");
+            return new MigrationResult { ExitCode = ExitCodes.NoProjectsFound };
+        }
+
+        // Scan all packages
+        var allReferences = new List<PackageReference>();
+
+        await AnsiConsole.Progress()
+            .AutoRefresh(true)
+            .AutoClear(false)
+            .HideCompleted(false)
+            .Columns(
+                new TaskDescriptionColumn(),
+                new ProgressBarColumn(),
+                new PercentageColumn(),
+                new SpinnerColumn())
+            .StartAsync(async ctx =>
+            {
+                var task = ctx.AddTask("[cyan]Scanning packages[/]", maxValue: projectPaths.Count);
+
+                foreach (var projectPath in projectPaths)
+                {
+                    var projectName = Path.GetFileName(projectPath);
+                    task.Description = $"[cyan]Scanning[/] [white]{Markup.Escape(projectName)}[/]";
+
+                    var references = _projectAnalyzer.ScanProjectPackages(projectPath);
+                    allReferences.AddRange(references);
+
+                    task.Increment(1);
+                    await Task.Delay(30);
+                }
+
+                task.Description = "[green]Scan complete[/]";
+            });
+
+        _consoleService.WriteLine();
+
+        var packageInfo = new ProjectPackageInfo(allReferences);
+
+        // Write header
+        _consoleService.WriteAnalysisHeader(packageInfo.ProjectCount, packageInfo.TotalReferences);
+
+        // Run analysis
+        var report = _analysisService.Analyze(packageInfo);
+
+        // Write results for each analyzer
+        foreach (var result in report.Results)
+        {
+            _consoleService.WriteAnalyzerResult(result);
+        }
+
+        // Write summary
+        _consoleService.WriteAnalysisSummary(report);
+
+        return new MigrationResult
+        {
+            ProjectsProcessed = packageInfo.ProjectCount,
+            PackagesCentralized = packageInfo.TotalReferences,
+            ExitCode = report.HasIssues ? ExitCodes.AnalysisIssuesFound : ExitCodes.Success
         };
     }
 }

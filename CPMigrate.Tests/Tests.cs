@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CPMigrate.Analyzers;
 using CPMigrate.Models;
 using CPMigrate.Services;
 using FluentAssertions;
@@ -29,6 +30,9 @@ public class FakeConsoleService : IConsoleService
     public string AskSelection(string title, IEnumerable<string> choices) => choices.FirstOrDefault() ?? "";
     public bool AskConfirmation(string message) => ConfirmationResponse;
     public void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath) { }
+    public void WriteAnalysisHeader(int projectCount, int packageCount) { }
+    public void WriteAnalyzerResult(AnalyzerResult result) { }
+    public void WriteAnalysisSummary(AnalysisReport report) { }
 }
 
 public class OptionsTests
@@ -841,5 +845,318 @@ public class RollbackOptionsTests
 
         // Assert
         options.Rollback.Should().BeFalse();
+    }
+}
+
+public class AnalyzeOptionsTests
+{
+    [Fact]
+    public void Validate_AnalyzeWithDryRun_ThrowsArgumentException()
+    {
+        // Arrange
+        var options = new Options
+        {
+            Analyze = true,
+            DryRun = true
+        };
+
+        // Act & Assert
+        var action = () => options.Validate();
+        action.Should().Throw<ArgumentException>()
+            .WithMessage("*--analyze cannot be used with --dry-run*");
+    }
+
+    [Fact]
+    public void Validate_AnalyzeWithRollback_ThrowsArgumentException()
+    {
+        // Arrange
+        var options = new Options
+        {
+            Analyze = true,
+            Rollback = true,
+            BackupDir = "."
+        };
+
+        // Act & Assert
+        var action = () => options.Validate();
+        action.Should().Throw<ArgumentException>()
+            .WithMessage("*--analyze cannot be used with --rollback*");
+    }
+
+    [Fact]
+    public void Validate_AnalyzeOnly_DoesNotThrow()
+    {
+        // Arrange
+        var options = new Options
+        {
+            Analyze = true
+        };
+
+        // Act & Assert
+        var action = () => options.Validate();
+        action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Options_AnalyzeDefault_IsFalse()
+    {
+        // Arrange & Act
+        var options = new Options();
+
+        // Assert
+        options.Analyze.Should().BeFalse();
+    }
+}
+
+public class VersionInconsistencyAnalyzerTests
+{
+    private readonly VersionInconsistencyAnalyzer _analyzer = new();
+
+    [Fact]
+    public void Analyze_PackagesWithSameVersion_ReturnsNoIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Newtonsoft.Json", "13.0.1", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeFalse();
+        result.Issues.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Analyze_PackagesWithDifferentVersions_ReturnsIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Newtonsoft.Json", "12.0.3", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeTrue();
+        result.Issues.Should().HaveCount(1);
+        result.Issues[0].PackageName.Should().Be("Newtonsoft.Json");
+    }
+
+    [Fact]
+    public void Analyze_GroupsPackageNamesCaseInsensitively()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("newtonsoft.json", "12.0.3", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeTrue();
+        result.Issues.Should().HaveCount(1);
+    }
+}
+
+public class DuplicatePackageAnalyzerTests
+{
+    private readonly DuplicatePackageAnalyzer _analyzer = new();
+
+    [Fact]
+    public void Analyze_NoDuplicates_ReturnsNoIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Serilog", "3.0.0", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeFalse();
+        result.Issues.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Analyze_DifferentCasing_ReturnsIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("newtonsoft.json", "13.0.1", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeTrue();
+        result.Issues.Should().HaveCount(1);
+        result.Issues[0].Description.Should().Contain("casing variations");
+    }
+
+    [Fact]
+    public void Analyze_ReportsAllCasingVariations()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("newtonsoft.json", "13.0.1", "/path/Project2.csproj", "Project2.csproj"),
+            new("NEWTONSOFT.JSON", "13.0.1", "/path/Project3.csproj", "Project3.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeTrue();
+        result.Issues.Should().HaveCount(1);
+        result.Issues[0].Description.Should().Contain("3 casing variations");
+    }
+}
+
+public class RedundantReferenceAnalyzerTests
+{
+    private readonly RedundantReferenceAnalyzer _analyzer = new();
+
+    [Fact]
+    public void Analyze_NoRedundantReferences_ReturnsNoIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Serilog", "3.0.0", "/path/Project1.csproj", "Project1.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeFalse();
+        result.Issues.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Analyze_RedundantReferencesInSameProject_ReturnsIssues()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeTrue();
+        result.Issues.Should().HaveCount(1);
+        result.Issues[0].PackageName.Should().Be("Newtonsoft.Json");
+        result.Issues[0].AffectedProjects.Should().Contain("Project1.csproj");
+    }
+
+    [Fact]
+    public void Analyze_SamePackageDifferentProjects_ReturnsNoIssues()
+    {
+        // Arrange - same package in different projects is fine
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Newtonsoft.Json", "13.0.1", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+
+        // Act
+        var result = _analyzer.Analyze(packageInfo);
+
+        // Assert
+        result.HasIssues.Should().BeFalse();
+    }
+}
+
+public class AnalysisServiceTests
+{
+    [Fact]
+    public void Analyze_RunsAllAnalyzers()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+        var service = new AnalysisService();
+
+        // Act
+        var report = service.Analyze(packageInfo);
+
+        // Assert
+        report.Results.Should().HaveCount(3); // Three analyzers
+        report.ProjectsScanned.Should().Be(1);
+        report.TotalPackageReferences.Should().Be(1);
+    }
+
+    [Fact]
+    public void Analyze_NoIssues_HasIssuesIsFalse()
+    {
+        // Arrange
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+        var service = new AnalysisService();
+
+        // Act
+        var report = service.Analyze(packageInfo);
+
+        // Assert
+        report.HasIssues.Should().BeFalse();
+        report.TotalIssues.Should().Be(0);
+    }
+
+    [Fact]
+    public void Analyze_WithIssues_HasIssuesIsTrue()
+    {
+        // Arrange - version inconsistency
+        var references = new List<PackageReference>
+        {
+            new("Newtonsoft.Json", "13.0.1", "/path/Project1.csproj", "Project1.csproj"),
+            new("Newtonsoft.Json", "12.0.3", "/path/Project2.csproj", "Project2.csproj")
+        };
+        var packageInfo = new ProjectPackageInfo(references);
+        var service = new AnalysisService();
+
+        // Act
+        var report = service.Analyze(packageInfo);
+
+        // Assert
+        report.HasIssues.Should().BeTrue();
+        report.TotalIssues.Should().BeGreaterThan(0);
     }
 }

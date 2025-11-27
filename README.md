@@ -9,6 +9,7 @@ A beautiful CLI tool to migrate .NET solutions to [Central Package Management (C
 
 - **Automatic Migration** - Scans your solution/projects and generates `Directory.Packages.props`
 - **Version Conflict Resolution** - Handles packages with different versions across projects
+- **Package Analysis** - Scan for package issues without migrating (version inconsistencies, duplicates, redundant references)
 - **Dry-Run Mode** - Preview changes before applying them
 - **Rollback Support** - Undo migrations and restore original project files
 - **Beautiful Terminal UI** - Progress bars, colored output, and ASCII art
@@ -76,6 +77,7 @@ cpmigrate -p /path/to/project.csproj
 | `--output-dir` | `-o` | Output directory for Directory.Packages.props | `.` |
 | `--dry-run` | `-d` | Preview changes without modifying files | `false` |
 | `--rollback` | `-r` | Restore project files from backup and remove Directory.Packages.props | `false` |
+| `--analyze` | `-a` | Analyze packages for issues without modifying files | `false` |
 | `--keep-attrs` | `-k` | Keep Version attributes in .csproj files | `false` |
 | `--no-backup` | `-n` | Disable automatic backup | `false` |
 | `--backup-dir` | - | Backup directory location | `.` |
@@ -102,6 +104,12 @@ cpmigrate --rollback
 
 # Rollback with custom backup directory
 cpmigrate --rollback --backup-dir ./my-backups
+
+# Analyze packages for issues without migrating
+cpmigrate --analyze
+
+# Analyze a specific solution
+cpmigrate --analyze -s /path/to/solution
 ```
 
 ## What is Central Package Management?

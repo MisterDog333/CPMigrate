@@ -26,6 +26,7 @@ public static class ExitCodes
     public const int FileOperationError = 2;
     public const int VersionConflict = 3;
     public const int NoProjectsFound = 4;
+    public const int AnalysisIssuesFound = 5;
 }
 
 /// <summary>
@@ -77,6 +78,10 @@ public class Options
         HelpText = "Restore project files from most recent backup and remove Directory.Packages.props.")]
     public bool Rollback { get; set; }
 
+    [Option('a', "analyze", Default = false,
+        HelpText = "Analyze packages for issues (version inconsistencies, duplicates, redundant references) without modifying files.")]
+    public bool Analyze { get; set; }
+
     [Usage(ApplicationAlias = "cpmigrate")]
     public static IEnumerable<Example> Examples =>
         new List<Example>()
@@ -90,6 +95,8 @@ public class Options
                 new Options { DryRun = true }),
             new("Fail if version conflicts are detected",
                 new Options { ConflictStrategy = ConflictStrategy.Fail }),
+            new("Analyze packages for issues without migrating",
+                new Options { Analyze = true }),
         };
 
     /// <summary>
@@ -99,6 +106,23 @@ public class Options
     /// <exception cref="ArgumentException">Thrown when options are invalid.</exception>
     public void Validate()
     {
+        if (Analyze)
+        {
+            // Analyze mode has different validation rules
+            if (DryRun)
+            {
+                throw new ArgumentException("--analyze cannot be used with --dry-run.");
+            }
+
+            if (Rollback)
+            {
+                throw new ArgumentException("--analyze cannot be used with --rollback.");
+            }
+
+            // Other migration options are ignored in analyze mode
+            return;
+        }
+
         if (Rollback)
         {
             // Rollback mode has different validation rules
