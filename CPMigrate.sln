@@ -12,6 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		LICENSE = LICENSE
 		README.md = README.md
 		.github\workflows\ci.yml = .github\workflows\ci.yml
+		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{88888888-8888-8888-8888-888888888888}"
@@ -23,6 +24,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{777777
 		docs\images\dry-run.png = docs\images\dry-run.png
 		docs\images\conflict-resolution.png = docs\images\conflict-resolution.png
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4C73AF1E-7D53-4D22-BC11-17912E94762C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EC695440-242E-42EB-AA84-E6D29892D3C9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,5 +49,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{77777777-7777-7777-7777-777777777777} = {88888888-8888-8888-8888-888888888888}
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890} = {4C73AF1E-7D53-4D22-BC11-17912E94762C}
+		{B2C3D4E5-F678-90AB-CDEF-123456789012} = {EC695440-242E-42EB-AA84-E6D29892D3C9}
 	EndGlobalSection
 EndGlobal
