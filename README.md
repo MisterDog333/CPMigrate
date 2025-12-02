@@ -10,7 +10,7 @@ A stunning CLI tool to migrate .NET solutions to [Central Package Management (CP
 
 ## Features
 
-- **Interactive Wizard Mode** - Guided setup with arrow-key navigation, no flags to remember
+- **Interactive Wizard Mode** - Guided setup with arrow-key navigation, no flags to remember, with menu loop for multiple operations
 - **Automatic Migration** - Scans your solution/projects and generates `Directory.Packages.props`
 - **Version Conflict Resolution** - Handles packages with different versions across projects
 - **Package Analysis** - Scan for package issues without migrating (version inconsistencies, duplicates, redundant references)
@@ -65,10 +65,11 @@ cpmigrate
 ```
 
 The wizard guides you through:
-1. Choosing an operation (Migrate, Analyze, or Rollback)
+1. Choosing an operation (Migrate, Analyze, Rollback, or Exit)
 2. Selecting your solution file
 3. Configuring options with arrow keys
 4. Reviewing settings before execution
+5. After completion, option to return to main menu or exit
 
 You can also explicitly enter interactive mode:
 
