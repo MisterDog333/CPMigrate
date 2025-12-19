@@ -19,13 +19,15 @@ A stunning CLI tool to migrate .NET solutions to [Central Package Management (CP
 - **Cyberpunk Terminal UI** - Stunning neon-styled interface with progress tracking and mission status blueprints.
 - **Safe by Default** - Automatic backups, Git health checks, and a comprehensive rollback system.
 
-### New in v2.3: "Mission Control"
+### New in v2.5: "Intelligence & Security"
 
-- **Intelligence-Driven Workflow**: The tool analyzes your environment on boot to suggest the best "Quick Actions".
-- **Visual Path Browser**: Navigate and select solutions or projects using arrow keys—no more typing long paths.
-- **Migration Risk Score**: Immediate feedback on the complexity of your migration (Low/Medium/High).
-- **Impact Analysis**: View "Blast Radius" when resolving conflicts (e.g., `"1.2.3 (Used by 15 projects)"`).
-- **Mission Progress Tracker**: Persistent visual blueprint of the migration stages.
+- **Transitive Pinning**: Detect and resolve version conflicts deep in your dependency tree.
+- **Dependency Lifting**: Automatically identify and remove direct references that are already provided transitively.
+- **Security Audit Mission**: Integrated vulnerability scanning (`dotnet list package --vulnerable`).
+- **Framework Alignment**: Heatmap visualization of Target Frameworks and divergence detection.
+- **Automated Fixers**: One-click resolution for transitive conflicts and redundant references.
+- **Mission Control Dashboard**: Intelligent repository pre-scan with risk assessment and situational awareness.
+- **Visual Path Browser**: Navigate and select solutions or projects using arrow keys.
 
 ## Installation
 
