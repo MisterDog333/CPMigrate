@@ -192,12 +192,7 @@ generate_interactive() {
 
     # Create expect script for simulating user input through the wizard
     # Since this project already has Directory.Packages.props, it will show
-    # the "already migrated" message. We show the Analyze flow instead which
-    # demonstrates the interactive UI perfectly.
-    # Flow:
-    # 1. Mode: "Analyze packages for issues" (second option - Down+Enter)
-    # 2. Solution: CPMigrate.sln is auto-detected (first option - Enter)
-    # 3. Confirm: "y"
+    # the "Analyze current CPM setup" option first.
     cat > "$EXPECT_SCRIPT" << 'EXPECT_EOF'
 #!/usr/bin/expect -f
 set timeout 60
@@ -206,35 +201,30 @@ set project_root [lindex $argv 0]
 # Spawn cpmigrate in interactive mode
 spawn dotnet run --configuration Release --project $project_root/CPMigrate --framework net10.0 --no-build
 
-# Wait for header to render
-sleep 3
+# Wait for header and Dashboard to render
+sleep 5
 
-# Mode selection - Down arrow then Enter for Analyze
-send "\033\[B"
-sleep 0.3
+# Mission Action selection - Enter for Analyze
+expect "What's the mission?"
 send "\r"
 sleep 1.5
 
-# Solution selection - Enter for CPMigrate.sln
-expect {
-    "Select a solution" {
-        send "\r"
-        sleep 1.5
-    }
-    "No .sln files" {
-        # If no sln found, enter path manually
-        sleep 0.5
-        send "$project_root\r"
-        sleep 1.5
-    }
-}
+# Path selection - Enter for "Use current directory"
+expect "Select a solution"
+send "\r"
+sleep 1.5
+
+# Fix choice - Enter for "No - just report"
+expect "Would you like to automatically fix issues?"
+send "\r"
+sleep 1.5
 
 # Wait for summary to render
 sleep 2
 
-# Confirmation - y
-expect "Proceed"
-send "y\r"
+# Confirmation - Selection based (Yes is default)
+expect "Proceed?"
+send "\r"
 
 # Wait for analysis to complete
 expect {

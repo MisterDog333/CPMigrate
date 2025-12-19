@@ -168,9 +168,41 @@ The stunning cyberpunk-inspired terminal UI includes:
 - **Impact-Aware Choice**: Selection menus that show project usage counts for package versions.
 - **Animated Dashboards**: Framed panels and grids for professional information density.
 
+## Screenshots
+
+### Mission Control (Interactive Mode)
+
+![CPMigrate Interactive](./docs/images/cpmigrate-interactive.gif)
+
+*The new state-driven Mission Control dashboard with risk assessment.*
+
+### Migration Mode (CLI)
+
+![CPMigrate Demo](./docs/images/cpmigrate-demo.gif)
+
+*Dry-run mode previewing changes with the cyberpunk-styled terminal UI.*
+
+### Package Analysis
+
+![CPMigrate Analyze](./docs/images/cpmigrate-analyze.gif)
+
+*Analyze mode scanning for package issues without modifying files.*
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Regenerating Documentation Media
+
+To regenerate the GIFs and recordings for the README:
+
+```bash
+# Prerequisites
+brew install asciinema agg expect
+
+# Generate all documentation media
+./scripts/generate-docs-media.sh
+```
 
 ## License
 
