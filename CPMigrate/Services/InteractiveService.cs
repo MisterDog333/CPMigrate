@@ -16,6 +16,7 @@ public class InteractiveService : IInteractiveService
     private const string ModeBatch = "📦 Batch migrate multiple solutions";
     private const string ModeRollback = "↩️  Rollback a previous migration";
     private const string ModeBackups = "💾 Manage backups (List/Prune)";
+    private const string ModeUnifyProps = "🏗  Unify Directory.Build.props (Clean Architecture)";
     private const string ModeExit = "❌ Exit";
 
     private const string ConflictHighest = "⬆️  Highest version (recommended)";
@@ -71,6 +72,7 @@ public class InteractiveService : IInteractiveService
                 else if (action.Contains("Rollback")) options.Rollback = true;
                 else if (action.Contains("Batch")) { AskBatchOptions(options); return options; }
                 else if (action.Contains("Manage Backups")) { AskBackupManagementOptions(options); return options; }
+                else if (action.Contains("Unify Directory.Build.props")) { options.UnifyProps = true; }
 
                 // Standard discovery for non-fast-track
                 var path = AskSolutionPath();
@@ -82,6 +84,7 @@ public class InteractiveService : IInteractiveService
             // Refine options if not fast-tracked
             if (options.Analyze) AskAnalyzeOptions(options);
             else if (options.Rollback) AskRollbackOptions(options);
+            else if (options.UnifyProps) { /* No extra options for unify currently */ }
             else if (string.IsNullOrEmpty(options.BatchDir) && !options.InteractiveConflicts) AskMigrationOptions(options);
 
             ShowSummary(options, action);
@@ -199,6 +202,7 @@ public class InteractiveService : IInteractiveService
         if (ctx.Backups.Count > 0)
             choices.Add("↩️  Rollback to a previous state");
 
+        choices.Add(ModeUnifyProps); // Add the new Unify option
         choices.Add("💾 Manage Backups");
         choices.Add("⚙️  Custom Migration (Manual Setup)");
         choices.Add("Exit");
@@ -470,6 +474,7 @@ public class InteractiveService : IInteractiveService
             ModeRollback => "ROLLBACK",
             ModeBackups when options.PruneAll => "PRUNE ALL",
             ModeBackups when options.PruneBackups => "PRUNE",
+            _ when mode.Contains("Unify") || options.UnifyProps => "UNIFY PROPS", // Handle new mode
             _ => "UNKNOWN"
         };
         
@@ -510,6 +515,10 @@ public class InteractiveService : IInteractiveService
             else if (options.PruneAll)
                 grid.AddRow("[white]Action[/]", "[red]DELETE ALL BACKUPS[/]");
         }
+        else if (options.UnifyProps)
+        {
+            grid.AddRow("[white]Operation[/]", $"[cyan1]Unify Directory.Build.props (Properties & Usings)[/]");
+        }
 
         var panel = new Panel(grid)
         {
@@ -522,11 +531,3 @@ public class InteractiveService : IInteractiveService
         AnsiConsole.Write(panel);
         _console.WriteLine();
     }
-
-    private bool AskConfirmation()
-    {
-        return _console.AskConfirmation("Proceed?");
-    }
-    
-    private static string EscapeMarkup(string text) => Markup.Escape(text);
-}
