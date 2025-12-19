@@ -112,15 +112,13 @@ public class InteractiveServiceTests : IDisposable
     {
         // Arrange
         var fakeConsole = new FakeConsoleService();
-        var manualPath = "/custom/path";
-        var expectedPath = Path.GetFullPath(manualPath);
+        var manualPath = "custom_manual_path"; // Use relative to avoid drive ambiguity
 
         fakeConsole.SelectionResponses = new Queue<string>(new[]
         {
             "⚙️  Custom Migration (Manual Setup)",
             "✏️  Enter path manually...",
-            "🎯 Use current directory: custom", // Loop continues after manual path entry, need to select it
-            "🎯 Use current directory: custom", // Extra for safety
+            "🎯 Use current directory: custom", // Satisfy the browser loop after path entry
             "⬆️  Highest version (recommended)",
             "No", // backup
             "No - make changes immediately",
@@ -133,6 +131,8 @@ public class InteractiveServiceTests : IDisposable
         var originalDir = Directory.GetCurrentDirectory();
         try {
             Directory.SetCurrentDirectory(_testDirectory);
+            var expectedPath = Path.GetFullPath(manualPath);
+            
             var service = new InteractiveService(fakeConsole);
             var options = service.RunWizard();
 
