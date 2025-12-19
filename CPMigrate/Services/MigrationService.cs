@@ -34,7 +34,7 @@ public class MigrationService
         _propsGenerator = propsGenerator ?? new PropsGenerator(_versionResolver);
         _backupManager = backupManager ?? new BackupManager();
         var graphService = new DependencyGraphService(_consoleService);
-        _analysisService = analysisService ?? new AnalysisService(null, graphService);
+        _analysisService = analysisService ?? new AnalysisService(null, graphService, _projectAnalyzer);
         _fixService = new FixService(_consoleService);
         _quietMode = quietMode;
     }

@@ -297,7 +297,7 @@ public class SpectreConsoleService : IConsoleService
         return AnsiConsole.Prompt(prompt);
     }
 
-    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged)
+    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged, Dictionary<string, int> targetFrameworks)
     {
         var grid = new Grid();
         grid.AddColumn(new GridColumn().NoWrap());
@@ -324,6 +324,12 @@ public class SpectreConsoleService : IConsoleService
             ? $"[cyan1]{backups.Count} backup set(s) available[/]" 
             : "[grey39]None[/]";
         grid.AddRow("[grey39]Backups[/]", backupStatus);
+
+        if (targetFrameworks.Count > 0)
+        {
+            var tfmList = string.Join(", ", targetFrameworks.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} ({kv.Value})"));
+            grid.AddRow("[grey39]Frameworks[/]", $"[yellow1]{EscapeMarkup(tfmList)}[/]");
+        }
 
         var panel = new Panel(grid)
         {

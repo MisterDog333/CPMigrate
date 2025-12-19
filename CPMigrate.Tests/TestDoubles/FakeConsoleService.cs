@@ -25,7 +25,7 @@ public class FakeConsoleService : IConsoleService
     public void WritePropsPreview(string content) { }
     public void WriteMarkup(string message) { }
     public void WriteLine(string message = "") { }
-    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged) { }
+    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged, Dictionary<string, int> targetFrameworks) { }
     public List<int> MissionStatusSteps { get; } = new();
     public void WriteMissionStatus(int step) => MissionStatusSteps.Add(step);
     public void WriteRiskScore(int conflictCount, int projectCount) { }

@@ -10,7 +10,7 @@ public class AnalysisService
 {
     private readonly IReadOnlyList<IAnalyzer> _analyzers;
 
-    public AnalysisService(IEnumerable<IAnalyzer>? analyzers = null, DependencyGraphService? graphService = null)
+    public AnalysisService(IEnumerable<IAnalyzer>? analyzers = null, DependencyGraphService? graphService = null, ProjectAnalyzer? projectAnalyzer = null)
     {
         if (analyzers != null)
         {
@@ -30,6 +30,11 @@ public class AnalysisService
             if (graphService != null)
             {
                 analyzersList.Add(new LiftingAnalyzer(graphService));
+            }
+
+            if (projectAnalyzer != null)
+            {
+                analyzersList.Add(new FrameworkAlignmentAnalyzer(projectAnalyzer));
             }
 
             _analyzers = analyzersList;

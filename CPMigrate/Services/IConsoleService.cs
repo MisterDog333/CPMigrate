@@ -20,7 +20,7 @@ public interface IConsoleService
     void WritePropsPreview(string content);
     void WriteMarkup(string message);
     void WriteLine(string message = "");
-    void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged);
+    void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged, Dictionary<string, int> targetFrameworks);
     void WriteMissionStatus(int step);
     void WriteRiskScore(int conflictCount, int projectCount);
     string AskSelection(string title, IEnumerable<string> choices);

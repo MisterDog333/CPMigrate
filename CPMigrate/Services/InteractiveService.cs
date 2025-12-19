@@ -37,7 +37,7 @@ public class InteractiveService : IInteractiveService
         {
             _console.WriteHeader();
             var context = AnalyzeEnvironment();
-            _console.WriteStatusDashboard(context.Directory, context.Solutions, context.Backups, context.IsGitRepo, context.HasUnstaged);
+            _console.WriteStatusDashboard(context.Directory, context.Solutions, context.Backups, context.IsGitRepo, context.HasUnstaged, context.TargetFrameworks);
             
             if (context.ConflictCount > 0 || context.ProjectCount > 0)
             {
@@ -113,6 +113,7 @@ public class InteractiveService : IInteractiveService
         public int ProjectCount;
         public int ConflictCount;
         public int VulnerabilityCount;
+        public Dictionary<string, int> TargetFrameworks = new();
     }
 
     private EnvContext AnalyzeEnvironment()
@@ -153,13 +154,17 @@ public class InteractiveService : IInteractiveService
         if (projects.Count > 0)
         {
             var packages = new Dictionary<string, HashSet<string>>();
-            var vulnerabilities = new List<VulnerabilityInfo>();
             
             foreach (var p in projects) 
             {
                 analyzer.ScanProjectPackages(p, packages);
-                // We don't scan vulnerabilities here because it's slow for dashboard
-                // but if we want Mission Control to show it, we might need a faster way or background task
+                
+                var tfm = analyzer.GetTargetFramework(p);
+                foreach (var tf in tfm.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!ctx.TargetFrameworks.ContainsKey(tf)) ctx.TargetFrameworks[tf] = 0;
+                    ctx.TargetFrameworks[tf]++;
+                }
             }
             
             var resolver = new VersionResolver(_console);

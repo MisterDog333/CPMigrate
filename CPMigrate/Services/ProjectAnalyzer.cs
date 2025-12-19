@@ -143,6 +143,27 @@ public partial class ProjectAnalyzer
     }
 
     /// <summary>
+    /// Extracts the target framework from a project file.
+    /// </summary>
+    public string GetTargetFramework(string projectFilePath)
+    {
+        try
+        {
+            using var projectCollection = new ProjectCollection();
+            var projectRoot = ProjectRootElement.Open(projectFilePath, projectCollection);
+            
+            var targetFramework = projectRoot.Properties
+                .FirstOrDefault(p => p.Name == "TargetFramework" || p.Name == "TargetFrameworks")?.Value ?? "Unknown";
+            
+            return targetFramework;
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    /// <summary>
     /// Processes a project file to extract package references and optionally remove version attributes.
     /// </summary>
     /// <param name="projectFilePath">Full path to the project file.</param>
