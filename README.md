@@ -38,6 +38,12 @@ CPMigrate v2.5+ isn't just a migration tool; it's a repository health auditor.
 -   **🎯 Framework Alignment Heatmap**
     *   **Feature:** Visualizes target framework divergence (e.g., mixing `net8.0` and `net472`) which can complicate package resolution.
 
+### 🏗️ Clean Architecture (New in v2.6)
+
+-   **Directory.Build.props Unification**
+    *   **Problem:** Repeating `<TargetFramework>`, `<Authors>`, or `<ImplicitUsings>` in every single project file violates DRY.
+    *   **Solution:** `cpmigrate --unify-props` automatically detects properties shared by **all** projects, moves them to a solution-level `Directory.Build.props`, and cleans up individual project files.
+
 ### 🎮 Mission Control Dashboard
 
 -   **Zero-Typing Interface:** Navigate your file system and options using only arrow keys.
@@ -98,6 +104,11 @@ The tool will:
 cpmigrate -s .
 ```
 
+**Unify common properties to Directory.Build.props:**
+```bash
+cpmigrate --unify-props
+```
+
 **Dry-run (Preview changes):**
 ```bash
 cpmigrate --dry-run
@@ -119,6 +130,7 @@ cpmigrate --batch /path/to/repo --batch-parallel
 |--------|-------|-------------|
 | `--interactive` | `-i` | Launch the Mission Control TUI (Default if no args). |
 | `--solution` | `-s` | Path to `.sln` file or directory. |
+| `--unify-props` | - | Migrate common project properties to `Directory.Build.props`. |
 | `--dry-run` | `-d` | Simulate operations without writing files. |
 | `--analyze` | `-a` | Run health checks (duplicates, security, transitive). |
 | `--fix` | - | Apply automatic fixes to discovered analysis issues. |
