@@ -1,41 +1,70 @@
 # CPMigrate
 
-A stunning CLI tool to migrate .NET solutions to [Central Package Management (CPM)](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management).
+> **The definitive CLI tool for modernizing .NET dependencies.**
 
-![.NET](https://img.shields.io/badge/.NET-10.0+-512BD4)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NuGet](https://img.shields.io/nuget/v/CPMigrate.svg)](https://www.nuget.org/packages/CPMigrate/)
+A stunning, intelligent CLI to migrate .NET solutions to [Central Package Management (CPM)](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management) with zero friction.
+
+![.NET](https://img.shields.io/badge/.NET-10.0+-512BD4?style=flat-square&logo=dotnet)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![NuGet](https://img.shields.io/nuget/v/CPMigrate.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/CPMigrate/)
+[![Downloads](https://img.shields.io/nuget/dt/CPMigrate.svg?style=flat-square&color=blue)](https://www.nuget.org/packages/CPMigrate/)
 
 ![CPMigrate Interactive Wizard](./docs/images/cpmigrate-interactive.gif)
 
-## Features
+## 🚀 Why CPMigrate?
 
-- **Mission Control Dashboard** - Intelligent repository pre-scan with risk assessment and situational awareness.
-- **Zero-Typing Interaction** - Entirely selection-driven UI with a visual path browser for navigating your file system.
-- **Smart Conflict Resolution** - Impact-aware version selection showing exactly how many projects use each version.
-- **Live Verification Loop** - Automatic `dotnet restore` verification with autonomous recovery and rollback options.
-- **Batch Migration** - Effortlessly migrate multiple solutions across a monorepo in one go.
-- **Package Analysis & Auto-Fix** - Scan for issues like version divergence or redundant references and fix them instantly.
-- **Cyberpunk Terminal UI** - Stunning neon-styled interface with progress tracking and mission status blueprints.
-- **Safe by Default** - Automatic backups, Git health checks, and a comprehensive rollback system.
+Managing NuGet versions across dozens of projects is a nightmare of "version drift."
+**Central Package Management (CPM)** solves this by unifying versions in a single `Directory.Packages.props` file.
 
-### New in v2.5: "Intelligence & Security"
+**CPMigrate** automates this transition. It doesn't just move XML around; it **analyzes**, **resolves conflicts**, **cleans up dependencies**, and **secures** your codebase in minutes.
 
-- **Transitive Pinning**: Detect and resolve version conflicts deep in your dependency tree.
-- **Dependency Lifting**: Automatically identify and remove direct references that are already provided transitively.
-- **Security Audit Mission**: Integrated vulnerability scanning (`dotnet list package --vulnerable`).
-- **Framework Alignment**: Heatmap visualization of Target Frameworks and divergence detection.
-- **Automated Fixers**: One-click resolution for transitive conflicts and redundant references.
-- **Mission Control Dashboard**: Intelligent repository pre-scan with risk assessment and situational awareness.
-- **Visual Path Browser**: Navigate and select solutions or projects using arrow keys.
+---
 
-## Installation
+## ✨ Features
 
-### As a .NET Global Tool
+### 🛡️ Intelligence & Security Suite (New in v2.5)
+
+CPMigrate v2.5+ isn't just a migration tool; it's a repository health auditor.
+
+-   **🔍 Transitive Pinning & Conflict Resolution**
+    *   **Problem:** Deep dependency chains often conflict, causing runtime errors.
+    *   **Solution:** Automatically detects conflicts deep in the graph and "pins" the correct version at the root level.
+-   **🧹 Dependency Lifting (Redundant Reference Removal)**
+    *   **Problem:** Projects often explicitly reference packages that are already brought in by other libraries (e.g., `Microsoft.Extensions.Logging`).
+    *   **Solution:** Identifies and removes these redundant lines, keeping your `.csproj` files lean.
+-   **🚨 Integrated Security Audit**
+    *   **Feature:** Runs a real-time vulnerability scan (`dotnet list package --vulnerable`) and integrates findings directly into the migration report.
+    *   **Action:** Highlights high-severity CVEs before you lock them into your CPM file.
+-   **🎯 Framework Alignment Heatmap**
+    *   **Feature:** Visualizes target framework divergence (e.g., mixing `net8.0` and `net472`) which can complicate package resolution.
+
+### 🎮 Mission Control Dashboard
+
+-   **Zero-Typing Interface:** Navigate your file system and options using only arrow keys.
+-   **Risk Assessment:** Pre-scans your repo to calculate a "Migration Risk" score based on version divergence.
+-   **Live Verification:** Automatically runs `dotnet restore` after every major change to ensure build integrity.
+-   **Cyberpunk UI:** A stunning, high-density terminal interface with progress blueprints and real-time status updates.
+
+---
+
+## 📦 Installation
+
+### As a .NET Global Tool (Recommended)
+
+Requires .NET SDK 8.0 or later (supports .NET 10).
 
 ```bash
 dotnet tool install --global CPMigrate
 ```
+
+**Upgrading to the latest version:**
+
+```bash
+dotnet tool update --global CPMigrate
+```
+
+> **Note:** If you just released a version, NuGet indexing might take ~15 minutes. Try clearing your cache if updates aren't finding the new version:
+> `dotnet nuget locals http-cache --clear`
 
 ### From Source
 
@@ -45,173 +74,93 @@ cd CPMigrate
 dotnet build
 ```
 
-## Usage
+---
 
-### Interactive Mode (Recommended)
+## 🕹️ Usage
 
-Simply run `cpmigrate` with no arguments to enter **Mission Control**:
+### Interactive Mode (The "Mission Control")
+
+Simply run the command without arguments to enter the wizard:
 
 ```bash
 cpmigrate
 ```
 
-The tool will immediately:
-1. **Scan** your current directory for solutions and existing CPM setups.
-2. **Dashboard** your repository state (Git health, backups, solutions).
-3. **Assess Risk** based on version divergence across projects.
-4. **Offer Quick Actions** like "Fast-Track Migration" or "Optimize Existing Setup".
-5. **Guide** you through a selection-based path browser if manual setup is needed.
+The tool will:
+1.  **Scan** for solutions and git status.
+2.  **Dashboard** your current repository state.
+3.  **Guide** you through migration, cleanup, or analysis.
 
-### Command-Line Usage
+### Command-Line (CI/CD & Power Users)
 
+**Migrate the current folder's solution:**
 ```bash
-# Migrate current directory (looks for .sln file)
 cpmigrate -s .
+```
 
-# Preview changes without modifying files
+**Dry-run (Preview changes):**
+```bash
 cpmigrate --dry-run
+```
 
-# Migrate all solutions in a directory recursively
-cpmigrate --batch /path/to/repo
-
-# Analyze packages for issues
+**Analyze and auto-fix issues (No migration, just cleanup):**
+```bash
 cpmigrate --analyze --fix
 ```
 
-### Options
-
-#### Core Options
-
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--interactive` | `-i` | Run in interactive Mission Control mode | `false` |
-| `--solution` | `-s` | Path to solution file or directory | `.` |
-| `--project` | `-p` | Path to project file or directory | - |
-| `--dry-run` | `-d` | Preview changes without modifying files | `false` |
-| `--merge` | - | Merge into existing Directory.Packages.props if present | `false` |
-| `--rollback` | `-r` | Restore project files from backup | `false` |
-| `--analyze` | `-a` | Analyze packages for issues | `false` |
-| `--fix` | - | Automatically apply fixes for detected issues | `false` |
-| `--no-backup` | `-n` | Disable automatic backup | `false` |
-| `--conflict-strategy` | - | Resolution: `Highest`, `Lowest`, `Fail` | `Highest` |
-| `--interactive-conflicts` | - | Manually choose version for every conflict | `false` |
-
-#### Output & CI/CD
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--output` | Output format: `Terminal` or `Json` | `Terminal` |
-| `--output-file` | Write JSON output to file instead of stdout | - |
-| `--quiet` | Suppress progress bars and spinners | `false` |
-
-#### Batch Processing & Backups
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--batch` | Scan directory for .sln files and process each | - |
-| `--batch-parallel` | Process solutions in parallel | `false` |
-| `--prune-backups` | Delete old backups, keeping most recent | `false` |
-| `--retention` | Number of backups to keep when pruning | `5` |
-
-## Interactive Mission Control
-
-When you start CPMigrate, you're presented with a high-density dashboard:
-
-```text
- ┌───────────────── REPOSITORY CONTEXT ─────────────────┐
- │ Directory  /Users/dev/MyProject                      │
- │ Solutions  3 solution(s) detected                    │
- │ Using CPM  NO                                        │
- │ Git Status Clean                                     │
- │ Backups    2 backup set(s) available                 │
- └──────────────────────────────────────────────────────┘
- ┌───────────────────── ASSESSMENT ─────────────────────┐
- │ Migration Risk: MEDIUM                               │
- │ Impact Area:    12 projects                          │
- │ Assessment:     Minor version divergence detected.    │
- └──────────────────────────────────────────────────────┘
-
- What's the mission?
- 🚀 Fast-Track Migration (Auto-resolve 5 conflicts)
- 🛠  Migrate & Review Conflicts Individually
- 📦 Batch migrate multiple solutions
- Exit
-```
-
-## What is Central Package Management?
-
-Central Package Management (CPM) allows you to manage all package versions in a single `Directory.Packages.props` file. This eliminates "version drift" where different projects use different versions of the same library.
-
-### Before (Traditional)
-
-```xml
-<!-- Project1.csproj --> <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-<!-- Project2.csproj --> <PackageReference Include="Newtonsoft.Json" Version="12.0.3" /> <!-- Conflict! -->
-```
-
-### After (CPM)
-
-```xml
-<!-- Directory.Packages.props -->
-<ItemGroup>
-  <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
-</ItemGroup>
-
-<!-- Project1.csproj & Project2.csproj -->
-<PackageReference Include="Newtonsoft.Json" /> <!-- version is inherited -->
-```
-
-## Terminal UI Features
-
-The stunning cyberpunk-inspired terminal UI includes:
-
-- **Mission Status Tracker**: Real-time blueprint showing progress through `DISCOVERY -> ANALYSIS -> BACKUP -> MIGRATION -> VERIFICATION`.
-- **Risk Gauge**: Visual color-coded assessment of migration complexity.
-- **Impact-Aware Choice**: Selection menus that show project usage counts for package versions.
-- **Animated Dashboards**: Framed panels and grids for professional information density.
-
-## Screenshots
-
-### Mission Control (Interactive Mode)
-
-![CPMigrate Interactive](./docs/images/cpmigrate-interactive.gif)
-
-*The new state-driven Mission Control dashboard with risk assessment.*
-
-### Migration Mode (CLI)
-
-![CPMigrate Demo](./docs/images/cpmigrate-demo.gif)
-
-*Dry-run mode previewing changes with the cyberpunk-styled terminal UI.*
-
-### Package Analysis
-
-![CPMigrate Analyze](./docs/images/cpmigrate-analyze.gif)
-
-*Analyze mode scanning for package issues without modifying files.*
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Regenerating Documentation Media
-
-To regenerate the GIFs and recordings for the README:
-
+**Batch migrate an entire monorepo:**
 ```bash
-# Prerequisites
-brew install asciinema agg expect
-
-# Generate all documentation media
-./scripts/generate-docs-media.sh
+cpmigrate --batch /path/to/repo --batch-parallel
 ```
 
-## License
+### Options Reference
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--interactive` | `-i` | Launch the Mission Control TUI (Default if no args). |
+| `--solution` | `-s` | Path to `.sln` file or directory. |
+| `--dry-run` | `-d` | Simulate operations without writing files. |
+| `--analyze` | `-a` | Run health checks (duplicates, security, transitive). |
+| `--fix` | - | Apply automatic fixes to discovered analysis issues. |
+| `--rollback` | `-r` | Restore the last backup state. |
+| `--prune-backups` | - | Clean up old backup files to save space. |
+| `--output` | - | Output format: `Terminal` (default) or `Json` (for CI pipes). |
 
-## Author
+---
+
+## 🖼️ Gallery
+
+### Mission Control Dashboard
+![CPMigrate Interactive](./docs/images/cpmigrate-interactive.gif)
+*The state-driven dashboard assessing migration risk.*
+
+### Risk Analysis & Dry Run
+![CPMigrate Demo](./docs/images/cpmigrate-demo.gif)
+*Previewing massive changes safely before committing.*
+
+### Security & Package Analysis
+![CPMigrate Analyze](./docs/images/cpmigrate-analyze.gif)
+*Scanning for vulnerabilities and redundant dependencies.*
+
+---
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 👤 Author
 
 **George Wall**
-
-- GitHub: [@georgepwall1991](https://github.com/georgepwall1991)
+-   GitHub: [@georgepwall1991](https://github.com/georgepwall1991)
