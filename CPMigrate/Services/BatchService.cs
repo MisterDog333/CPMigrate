@@ -181,7 +181,7 @@ public class BatchService
             var solutionName = Path.GetFileNameWithoutExtension(sln);
             var solutionDir = Path.GetDirectoryName(sln) ?? ".";
 
-            _consoleService.WriteMarkup($"\n[cyan]▓▓▓ [{i + 1}/{solutions.Count}] {Markup.Escape(relativePath)} ▓▓▓[/]\n");
+            _consoleService.WriteMarkup($"\n[cyan]▓▓▓ [[{i + 1}/{solutions.Count}]] {Markup.Escape(relativePath)} ▓▓▓[/]\n");
 
             try
             {
