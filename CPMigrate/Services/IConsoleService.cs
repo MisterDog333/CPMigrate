@@ -20,9 +20,13 @@ public interface IConsoleService
     void WritePropsPreview(string content);
     void WriteMarkup(string message);
     void WriteLine(string message = "");
+    void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged);
+    void WriteMissionStatus(int step);
+    void WriteRiskScore(int conflictCount, int projectCount);
     string AskSelection(string title, IEnumerable<string> choices);
     bool AskConfirmation(string message);
     string AskText(string prompt, string defaultValue = "");
+    int AskInt(string prompt, int defaultValue);
     void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath);
     void WriteAnalysisHeader(int projectCount, int packageCount);
     void WriteAnalyzerResult(AnalyzerResult result);

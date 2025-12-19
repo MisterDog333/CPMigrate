@@ -25,12 +25,10 @@ public class FakeConsoleService : IConsoleService
     public void WritePropsPreview(string content) { }
     public void WriteMarkup(string message) { }
     public void WriteLine(string message = "") { }
-    public string AskSelection(string title, IEnumerable<string> choices)
-    {
-        if (SelectionResponses.Count > 0)
-            return SelectionResponses.Dequeue();
-        return choices.FirstOrDefault() ?? "";
-    }
+    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged) { }
+    public void WriteMissionStatus(int step) { }
+    public void WriteRiskScore(int conflictCount, int projectCount) { }
+    public string AskSelection(string title, IEnumerable<string> choices) => choices.First();
     public bool AskConfirmation(string message) => ConfirmationResponse;
     public string AskText(string prompt, string defaultValue = "")
     {
@@ -38,6 +36,7 @@ public class FakeConsoleService : IConsoleService
             return TextResponses.Dequeue();
         return defaultValue;
     }
+    public int AskInt(string prompt, int defaultValue) => defaultValue;
     public void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath) { }
     public void WriteAnalysisHeader(int projectCount, int packageCount) { }
     public void WriteAnalyzerResult(AnalyzerResult result) { }

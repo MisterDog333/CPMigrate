@@ -239,25 +239,113 @@ public class SpectreConsoleService : IConsoleService
         AnsiConsole.WriteLine(message);
     }
 
+    public void WriteMissionStatus(int step)
+    {
+        var steps = new[] { "DISCOVERY", "ANALYSIS", "BACKUP", "MIGRATION", "VERIFICATION" };
+        var grid = new Grid();
+        for (int i = 0; i < steps.Length; i++)
+        {
+            grid.AddColumn(new GridColumn().Centered());
+        }
+
+        var row = new List<string>();
+        for (int i = 0; i < steps.Length; i++)
+        {
+            if (i < step) row.Add($"[springgreen1]✔ {steps[i]}[/]");
+            else if (i == step) row.Add($"[deeppink1]▶ {steps[i]}[/]");
+            else row.Add($"[grey39]○ {steps[i]}[/]");
+        }
+        grid.AddRow(row.ToArray());
+
+        AnsiConsole.Write(new Panel(grid) { Border = BoxBorder.None });
+        AnsiConsole.WriteLine();
+    }
+
+    public void WriteRiskScore(int conflictCount, int projectCount)
+    {
+        string level, colorMarkup, desc;
+        Color color;
+        if (conflictCount == 0) { level = "LOW"; colorMarkup = "springgreen1"; color = CyberColors.Success; desc = "Clean migration path."; }
+        else if (conflictCount < 5) { level = "MEDIUM"; colorMarkup = "yellow1"; color = CyberColors.Accent; desc = "Minor version divergence detected."; }
+        else { level = "HIGH"; colorMarkup = "red1"; color = CyberColors.Error; desc = "Significant version conflicts. Review recommended."; }
+
+        var table = new Table().Border(TableBorder.None).HideHeaders();
+        table.AddColumn("Label");
+        table.AddColumn("Value");
+        
+        table.AddRow("[grey39]Migration Risk:[/]", $"[{colorMarkup} bold]{level}[/]");
+        table.AddRow("[grey39]Impact Area:[/]", $"[white]{projectCount} projects[/]");
+        table.AddRow("[grey39]Assessment:[/]", $"[grey]{desc}[/]");
+        
+        AnsiConsole.Write(new Panel(table) 
+        { 
+            Header = new PanelHeader("[grey] ASSESSMENT [/]"),
+            Padding = new Padding(1, 0),
+            BorderStyle = new Style(color)
+        });
+    }
+
     public string AskSelection(string title, IEnumerable<string> choices)
     {
-        var selection = AnsiConsole.Prompt(
-            new SelectionPrompt<string>()
+        var prompt = new SelectionPrompt<string>()
                 .Title($"[deeppink1]{EscapeMarkup(title)}[/]")
                 .PageSize(10)
+                .MoreChoicesText("[grey](Move up and down to reveal more choices)[/]")
                 .HighlightStyle(new Style(CyberColors.Secondary))
-                .AddChoices(choices));
-        return selection;
+                .AddChoices(choices);
+
+        return AnsiConsole.Prompt(prompt);
+    }
+
+    public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged)
+    {
+        var grid = new Grid();
+        grid.AddColumn(new GridColumn().NoWrap());
+        grid.AddColumn(new GridColumn().Padding(2, 0, 0, 0));
+
+        grid.AddRow("[grey39]Directory[/]", $"[white]{EscapeMarkup(directory)}[/]");
+        
+        var slnStatus = solutions.Count > 0 
+            ? $"[springgreen1]{solutions.Count} solution(s) detected[/]" 
+            : "[orange1]No solutions found here[/]";
+        grid.AddRow("[grey39]Solutions[/]", slnStatus);
+
+        var cpmStatus = File.Exists(Path.Combine(directory, "Directory.Packages.props"))
+            ? "[deeppink1]YES[/] [grey](Directory.Packages.props detected)[/]"
+            : "[grey39]NO[/]";
+        grid.AddRow("[grey39]Using CPM[/]", cpmStatus);
+
+        var gitStatus = !isGitRepo ? "[grey39]Not a Git Repo[/]" 
+            : hasUnstaged ? "[orange1]Dirty[/] [grey](Unstaged changes detected)[/]" 
+            : "[springgreen1]Clean[/]";
+        grid.AddRow("[grey39]Git Status[/]", gitStatus);
+
+        var backupStatus = backups.Count > 0 
+            ? $"[cyan1]{backups.Count} backup set(s) available[/]" 
+            : "[grey39]None[/]";
+        grid.AddRow("[grey39]Backups[/]", backupStatus);
+
+        var panel = new Panel(grid)
+        {
+            Header = new PanelHeader("[deeppink1] REPOSITORY CONTEXT [/]"),
+            Border = BoxBorder.Rounded,
+            BorderStyle = new Style(CyberColors.Dim),
+            Padding = new Padding(1, 0)
+        };
+
+        AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
     }
 
     public bool AskConfirmation(string message)
     {
-        var prompt = new ConfirmationPrompt($"[deeppink1]{EscapeMarkup(message)}[/]")
-        {
-            DefaultValue = false,
-            InvalidChoiceMessage = "[red]Invalid input.[/] Please enter [cyan]y[/] or [cyan]n[/]."
-        };
-        return AnsiConsole.Prompt(prompt);
+        var selection = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title($"[deeppink1]{EscapeMarkup(message)}[/]")
+                .AddChoices(new[] { "Yes", "No" })
+                .HighlightStyle(new Style(CyberColors.Secondary)));
+        
+        return selection == "Yes";
     }
 
     public string AskText(string prompt, string defaultValue = "")
@@ -271,6 +359,15 @@ public class SpectreConsoleService : IConsoleService
         }
 
         return AnsiConsole.Prompt(textPrompt);
+    }
+
+    public int AskInt(string prompt, int defaultValue)
+    {
+        var intPrompt = new TextPrompt<int>($"[deeppink1]{EscapeMarkup(prompt)}[/]")
+            .PromptStyle(new Style(CyberColors.Secondary))
+            .DefaultValue(defaultValue);
+
+        return AnsiConsole.Prompt(intPrompt);
     }
 
     public void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath)

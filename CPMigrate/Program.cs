@@ -111,7 +111,8 @@ static async Task<int> RunInteractiveMode(IConsoleService consoleService, IInter
         }
 
         // Load config if available
-        var startDir = !string.IsNullOrEmpty(options.SolutionFileDir) && options.SolutionFileDir != "." ? options.SolutionFileDir :
+        var startDir = !string.IsNullOrEmpty(options.BatchDir) ? options.BatchDir :
+                       !string.IsNullOrEmpty(options.SolutionFileDir) && options.SolutionFileDir != "." ? options.SolutionFileDir :
                        !string.IsNullOrEmpty(options.ProjectFileDir) ? options.ProjectFileDir : ".";
         var config = configService.LoadConfig(startDir);
         if (config != null)
@@ -119,7 +120,28 @@ static async Task<int> RunInteractiveMode(IConsoleService consoleService, IInter
             configService.MergeConfig(options, config);
         }
 
-        var result = await RunMigration(options, consoleService, versionResolver, backupManager);
+        int result;
+        if (!string.IsNullOrEmpty(options.BatchDir))
+        {
+            result = await RunBatchMode(options, consoleService, versionResolver, backupManager);
+        }
+        else if (options.PruneBackups || options.PruneAll || options.ListBackups)
+        {
+            if (options.ListBackups)
+            {
+                var migrationService = new MigrationService(consoleService, null, versionResolver, null, backupManager, null, options.Quiet);
+                var migrationResult = await migrationService.ExecuteAsync(options);
+                result = migrationResult.ExitCode;
+            }
+            else
+            {
+                result = await RunPruneMode(options, consoleService, backupManager);
+            }
+        }
+        else
+        {
+            result = await RunMigration(options, consoleService, versionResolver, backupManager);
+        }
 
         // Show result and prompt to continue
         consoleService.WriteLine();

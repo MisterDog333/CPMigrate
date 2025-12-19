@@ -80,99 +80,231 @@ public class MigrationService
     {
         var (outputPath, propsPath) = GetOutputPaths(options);
         var propsFileExists = IsAlreadyMigrated(propsPath);
+        string? backupPath = null;
+        string? backupTimestamp = null;
+        bool backupsCreated = false;
 
-        if (!options.DryRun)
+        try
         {
-            var directoryError = await ValidateOutputDirectoryAsync(outputPath);
-            if (directoryError != null)
+            if (!options.DryRun)
             {
-                return directoryError;
+                var directoryError = await ValidateOutputDirectoryAsync(outputPath);
+                if (directoryError != null)
+                {
+                    return directoryError;
+                }
+                
+                // Warn about unstaged changes if in a git repo
+                await CheckForUnstagedChangesAsync(outputPath);
+            }
+
+            if (propsFileExists && !options.MergeExisting)
+            {
+                return CreateAlreadyMigratedResult(propsPath);
+            }
+
+            ShowDryRunBannerIfNeeded(options);
+
+            var (basePath, projectPaths) = await DiscoverProjectsWithSpinnerAsync(options);
+            if (projectPaths.Count == 0)
+            {
+                _consoleService.Error("No projects found to process.");
+                return new MigrationResult { ExitCode = ExitCodes.NoProjectsFound };
+            }
+
+            ShowDiscoveredProjects(basePath, projectPaths);
+
+            var packages = new Dictionary<string, HashSet<string>>();
+            var propsFileExisted = propsFileExists;
+            var hadConditionalPackageVersions = false;
+
+            if (propsFileExists && options.MergeExisting)
+            {
+                if (!TryLoadExistingPropsPackages(propsPath, packages, out var existingCount, out hadConditionalPackageVersions))
+                {
+                    return new MigrationResult { ExitCode = ExitCodes.FileOperationError };
+                }
+
+                if (!_quietMode)
+                {
+                    _consoleService.Info($"Loaded {existingCount} package(s) from existing Directory.Packages.props.");
+                }
+
+                if (hadConditionalPackageVersions && !_quietMode)
+                {
+                    _consoleService.Warning("Conditional PackageVersion entries detected; merge will normalize versions.");
+                }
+            }
+
+            backupPath = SetupBackupDirectory(options);
+            backupTimestamp = !options.DryRun && !options.NoBackup && !string.IsNullOrEmpty(backupPath)
+                ? DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")
+                : null;
+            BackupEntry? propsBackupEntry = null;
+
+            if (propsFileExists && options.MergeExisting && !options.DryRun && !options.NoBackup && !string.IsNullOrEmpty(backupPath))
+            {
+                propsBackupEntry = _backupManager.CreateBackupForProject(options, propsPath, backupPath, backupTimestamp);
+                if (propsBackupEntry != null && !_quietMode)
+                {
+                    _consoleService.Dim("Backed up existing Directory.Packages.props.");
+                }
+            }
+
+            var backupEntries = await ProcessProjectsWithProgressAsync(options, projectPaths, packages, backupPath, backupTimestamp);
+            backupsCreated = backupEntries.Count > 0 || propsBackupEntry != null;
+
+            if (propsBackupEntry != null)
+            {
+                backupEntries.Add(propsBackupEntry);
+            }
+
+            var conflicts = _versionResolver.DetectConflicts(packages);
+            var conflictError = HandleVersionConflicts(options, packages, conflicts);
+            if (conflictError != null)
+            {
+                // If we fail here due to conflicts, and we created backups, we might want to rollback
+                // but usually failing on conflicts happens BEFORE writing files.
+                // However, ProcessProjectsWithProgressAsync ALREADY wrote the modified project files.
+                // So we MUST rollback if we fail here.
+                if (backupsCreated && !options.DryRun)
+                {
+                    _consoleService.Warning("Migration failed during conflict resolution. Project files have already been modified.");
+                    if (_consoleService.AskConfirmation("Rollback changes now?"))
+                    {
+                        await ExecuteRollbackAsync(new Options { BackupDir = backupPath!, Rollback = true });
+                    }
+                }
+                return conflictError;
+            }
+
+            var propsFilePath = await GeneratePropsFileAsync(options, packages);
+
+            await WriteBackupManifestAsync(options, backupEntries, backupPath, propsFilePath, propsFileExisted, backupTimestamp);
+            await ManageGitIgnoreAsync(options, backupPath);
+
+            ShowMigrationSummary(options, projectPaths.Count, packages.Count, conflicts.Count, propsFilePath, backupPath);
+            ShowPostMigrationGuidance(options, propsFilePath);
+
+            return new MigrationResult
+            {
+                ProjectsProcessed = projectPaths.Count,
+                PackagesCentralized = packages.Count,
+                ConflictsResolved = conflicts.Count,
+                PropsFilePath = propsFilePath,
+                BackupPath = backupPath,
+                WasDryRun = options.DryRun,
+                ExitCode = ExitCodes.Success
+            };
+        }
+        catch (Exception ex)
+        {
+            _consoleService.Error($"\nAn error occurred during migration: {ex.Message}");
+            
+            if (backupsCreated && !options.DryRun && !string.IsNullOrEmpty(backupPath))
+            {
+                _consoleService.Warning("Project files may have been partially modified.");
+                if (_consoleService.AskConfirmation("Would you like to attempt an automatic rollback to the last backup?"))
+                {
+                    await ExecuteRollbackAsync(new Options { BackupDir = backupPath, Rollback = true });
+                }
+            }
+            
+            throw; // Re-throw to be handled by Program.cs or caller
+        }
+    }
+
+    /// <summary>
+    /// Checks for unstaged changes in the target directory and warns the user.
+    /// </summary>
+    private async Task CheckForUnstagedChangesAsync(string directory)
+    {
+        if (_quietMode) return;
+
+        try
+        {
+            // Simple check using git status --porcelain
+            using var process = new System.Diagnostics.Process();
+            process.StartInfo.FileName = "git";
+            process.StartInfo.Arguments = "status --porcelain";
+            process.StartInfo.WorkingDirectory = directory;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.CreateNoWindow = true;
+
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+            {
+                _consoleService.Warning("Unstaged changes detected in the repository.");
+                _consoleService.Dim("It is highly recommended to commit or stash your changes before proceeding.");
+                
+                if (!_consoleService.AskConfirmation("Proceed anyway?"))
+                {
+                    throw new OperationCanceledException("User cancelled migration due to unstaged changes.");
+                }
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { /* Git not installed or not a repo, ignore */ }
+    }
+
+    private void ShowPostMigrationGuidance(Options options, string propsFilePath)
+    {
+        if (_quietMode || options.DryRun) return;
+
+        _consoleService.WriteLine();
+        _consoleService.Banner("NEXT STEPS & VERIFICATION");
+        _consoleService.WriteLine();
+        _consoleService.Info("1. Review the generated file: [cyan]" + Markup.Escape(propsFilePath) + "[/]");
+        _consoleService.Info("2. If you encounter issues, you can rollback using: [white]cpmigrate --rollback[/]");
+        _consoleService.WriteLine();
+
+        if (_consoleService.AskConfirmation("Would you like to verify the migration now by running 'dotnet restore'?"))
+        {
+            _consoleService.WriteLine();
+            var success = RunDotnetRestore(Path.GetDirectoryName(propsFilePath) ?? ".");
+            if (success)
+            {
+                _consoleService.Success("Verification successful! All projects restored correctly.");
+            }
+            else
+            {
+                _consoleService.Error("Verification failed. Some projects have restore errors.");
+                _consoleService.Warning("You might need to resolve version conflicts manually or rollback.");
             }
         }
 
-        if (propsFileExists && !options.MergeExisting)
-        {
-            return CreateAlreadyMigratedResult(propsPath);
-        }
+        _consoleService.WriteLine();
+        _consoleService.Success("Migration completed successfully! 🎉");
+    }
 
-        ShowDryRunBannerIfNeeded(options);
-
-        var (basePath, projectPaths) = await DiscoverProjectsWithSpinnerAsync(options);
-        if (projectPaths.Count == 0)
-        {
-            _consoleService.Error("No projects found to process.");
-            return new MigrationResult { ExitCode = ExitCodes.NoProjectsFound };
-        }
-
-        ShowDiscoveredProjects(basePath, projectPaths);
-
-        var packages = new Dictionary<string, HashSet<string>>();
-        var propsFileExisted = propsFileExists;
-        var hadConditionalPackageVersions = false;
-
-        if (propsFileExists && options.MergeExisting)
-        {
-            if (!TryLoadExistingPropsPackages(propsPath, packages, out var existingCount, out hadConditionalPackageVersions))
+    private bool RunDotnetRestore(string workingDirectory)
+    {
+        return AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .SpinnerStyle(Style.Parse("cyan"))
+            .Start("Running dotnet restore...", ctx =>
             {
-                return new MigrationResult { ExitCode = ExitCodes.FileOperationError };
-            }
-
-            if (!_quietMode)
-            {
-                _consoleService.Info($"Loaded {existingCount} package(s) from existing Directory.Packages.props.");
-            }
-
-            if (hadConditionalPackageVersions && !_quietMode)
-            {
-                _consoleService.Warning("Conditional PackageVersion entries detected; merge will normalize versions.");
-            }
-        }
-
-        var backupPath = SetupBackupDirectory(options);
-        var backupTimestamp = !options.DryRun && !options.NoBackup && !string.IsNullOrEmpty(backupPath)
-            ? DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")
-            : null;
-        BackupEntry? propsBackupEntry = null;
-
-        if (propsFileExists && options.MergeExisting && !options.DryRun && !options.NoBackup && !string.IsNullOrEmpty(backupPath))
-        {
-            propsBackupEntry = _backupManager.CreateBackupForProject(options, propsPath, backupPath, backupTimestamp);
-            if (propsBackupEntry != null && !_quietMode)
-            {
-                _consoleService.Dim("Backed up existing Directory.Packages.props.");
-            }
-        }
-
-        var backupEntries = await ProcessProjectsWithProgressAsync(options, projectPaths, packages, backupPath, backupTimestamp);
-        if (propsBackupEntry != null)
-        {
-            backupEntries.Add(propsBackupEntry);
-        }
-
-        var conflicts = _versionResolver.DetectConflicts(packages);
-        var conflictError = HandleVersionConflicts(options, packages, conflicts);
-        if (conflictError != null)
-        {
-            return conflictError;
-        }
-
-        var propsFilePath = await GeneratePropsFileAsync(options, packages);
-
-        await WriteBackupManifestAsync(options, backupEntries, backupPath, propsFilePath, propsFileExisted, backupTimestamp);
-        await ManageGitIgnoreAsync(options, backupPath);
-
-        ShowMigrationSummary(options, projectPaths.Count, packages.Count, conflicts.Count, propsFilePath, backupPath);
-
-        return new MigrationResult
-        {
-            ProjectsProcessed = projectPaths.Count,
-            PackagesCentralized = packages.Count,
-            ConflictsResolved = conflicts.Count,
-            PropsFilePath = propsFilePath,
-            BackupPath = backupPath,
-            WasDryRun = options.DryRun,
-            ExitCode = ExitCodes.Success
-        };
+                try
+                {
+                    using var process = new System.Diagnostics.Process();
+                    process.StartInfo.FileName = "dotnet";
+                    process.StartInfo.Arguments = "restore";
+                    process.StartInfo.WorkingDirectory = workingDirectory;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.Start();
+                    process.WaitForExit();
+                    return process.ExitCode == 0;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
     }
 
     /// <summary>
@@ -399,17 +531,37 @@ public class MigrationService
             _consoleService.Info("Select the version to use for each package with conflicts:");
             _consoleService.WriteLine();
 
+            // We need to count usage across all projects to show impact
+            var usageCounts = new Dictionary<string, Dictionary<string, int>>();
+            var (basePath, projectPaths) = DiscoverProjects(options);
+            foreach (var path in projectPaths)
+            {
+                var (refs, _) = _projectAnalyzer.ScanProjectPackages(path);
+                foreach (var r in refs)
+                {
+                    if (!usageCounts.ContainsKey(r.PackageName)) usageCounts[r.PackageName] = new Dictionary<string, int>();
+                    if (!usageCounts[r.PackageName].ContainsKey(r.Version)) usageCounts[r.PackageName][r.Version] = 0;
+                    usageCounts[r.PackageName][r.Version]++;
+                }
+            }
+
             foreach (var packageName in conflicts)
             {
                 if (!packages.TryGetValue(packageName, out var versions)) continue;
 
                 var versionList = versions.OrderByDescending(v => v).ToList();
                 var recommended = _versionResolver.ResolveVersion(versions, options.ConflictStrategy);
-                var choices = versionList.Select(v =>
-                    v == recommended ? $"{v} (recommended)" : v).ToList();
+                
+                var choices = versionList.Select(v => {
+                    var count = usageCounts.ContainsKey(packageName) && usageCounts[packageName].ContainsKey(v) 
+                        ? usageCounts[packageName][v] : 1;
+                    var label = $"{v} (Used by {count} project{(count == 1 ? "" : "s")})";
+                    if (v == recommended) label += " [springgreen1]**Recommended**[/]";
+                    return label;
+                }).ToList();
 
                 var selected = _consoleService.AskSelection($"Version for {packageName}?", choices);
-                var selectedVersion = selected.Replace(" (recommended)", "");
+                var selectedVersion = selected.Split(' ')[0];
 
                 // Update packages to only contain selected version
                 packages[packageName] = new HashSet<string> { selectedVersion };

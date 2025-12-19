@@ -195,11 +195,28 @@ public partial class ProjectAnalyzer
     }
 
     /// <summary>
+    /// Scans a project file and populates a package versions dictionary.
+    /// </summary>
+    public bool ScanProjectPackages(string projectFilePath, Dictionary<string, HashSet<string>> packageVersions)
+    {
+        var (refs, success) = ScanProjectPackages(projectFilePath);
+        if (!success) return false;
+
+        foreach (var r in refs)
+        {
+            if (packageVersions.TryGetValue(r.PackageName, out var versions))
+                versions.Add(r.Version);
+            else
+                packageVersions.Add(r.PackageName, new HashSet<string> { r.Version });
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Scans a project file to extract all package references without modifying the file.
     /// Used for analysis mode.
     /// </summary>
-    /// <param name="projectFilePath">Full path to the project file.</param>
-    /// <returns>Tuple of (package references, success status).</returns>
     public (List<PackageReference> References, bool Success) ScanProjectPackages(string projectFilePath)
     {
         var references = new List<PackageReference>();
