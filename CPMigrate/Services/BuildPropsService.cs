@@ -32,30 +32,42 @@ public class BuildPropsService
         _consoleService.Banner("Analyzing Project Properties...");
         var analysis = _analyzer.Analyze(projectPaths);
 
-        // Filter for properties that are present in ALL projects with the SAME value
-        // Key format is "Name|Value"
+        // Filter for properties that are present in at least 60% of projects with the SAME value
+        var threshold = Math.Ceiling(analysis.TotalProjects * 0.6);
+        
+        // Group by Name, then find the most common Value for each Name
         var candidates = analysis.PropertyOccurrences
-            .Where(kv => kv.Value.Count == analysis.TotalProjects)
-            .Select(kv => kv.Value.First()) // Take one representative
-            .OrderBy(p => p.Name)
+            .GroupBy(kv => kv.Value.First().Name) // Group by Property Name
+            .Select(g => 
+            {
+                var mostCommon = g.MaxBy(kv => kv.Value.Count); // Find value with highest count
+                return new 
+                { 
+                    Property = mostCommon!.Value.First(), 
+                    Count = mostCommon.Value.Count 
+                };
+            })
+            .Where(x => x.Count >= threshold)
+            .OrderBy(x => x.Property.Name)
             .ToList();
 
         if (candidates.Count == 0)
         {
-            _consoleService.Info("No common properties found across all projects.");
+            _consoleService.Info("No common properties found (checked for >60% consensus).");
             return ExitCodes.Success;
         }
 
-        _consoleService.Info($"Found {candidates.Count} common properties across {analysis.TotalProjects} projects:");
-        foreach (var prop in candidates)
+        _consoleService.Info($"Found {candidates.Count} common properties (consensus > 60%):");
+        foreach (var candidate in candidates)
         {
-            _consoleService.Dim($"  - {prop.Name} = {prop.Value}");
+            var percentage = (double)candidate.Count / analysis.TotalProjects * 100;
+            _consoleService.Dim($"  - {candidate.Property.Name} = {candidate.Property.Value} [green]({candidate.Count}/{analysis.TotalProjects} projects, {percentage:F0}%)[/]");
         }
 
         if (options.DryRun)
         {
             _consoleService.DryRun("Would create/update Directory.Build.props with these properties.");
-            _consoleService.DryRun("Would remove these properties from all project files.");
+            _consoleService.DryRun("Would remove these properties from matching project files.");
             return ExitCodes.Success;
         }
 
@@ -64,9 +76,11 @@ public class BuildPropsService
             return ExitCodes.Success;
         }
 
+        var propsList = candidates.Select(c => c.Property).ToList();
         var buildPropsPath = Path.Combine(basePath, "Directory.Build.props");
-        await CreateOrUpdateBuildProps(buildPropsPath, candidates);
-        await RemovePropertiesFromProjects(projectPaths, candidates);
+        
+        await CreateOrUpdateBuildProps(buildPropsPath, propsList);
+        await RemovePropertiesFromProjects(projectPaths, propsList);
 
         _consoleService.Success($"Successfully moved {candidates.Count} properties to Directory.Build.props");
         return ExitCodes.Success;
