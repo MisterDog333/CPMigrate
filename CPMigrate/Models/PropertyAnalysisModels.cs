@@ -9,6 +9,11 @@ namespace CPMigrate.Models;
 public record ProjectProperty(string Name, string Value, string ProjectPath);
 
 /// <summary>
+/// Represents an item (like Using or PackageReference) found in a project file.
+/// </summary>
+public record ProjectItem(string ItemType, string Include, string ProjectPath, Dictionary<string, string>? Metadata = null);
+
+/// <summary>
 /// Result of analyzing project properties across a solution.
 /// </summary>
 public class PropertyAnalysisResult
@@ -18,6 +23,11 @@ public class PropertyAnalysisResult
     /// Used to determine frequency of specific Name+Value pairs.
     /// </summary>
     public Dictionary<string, List<ProjectProperty>> PropertyOccurrences { get; set; } = new();
+
+    /// <summary>
+    /// Map of "ItemType:Include:MetadataHash" key to list of occurrences.
+    /// </summary>
+    public Dictionary<string, List<ProjectItem>> ItemOccurrences { get; set; } = new();
 
     /// <summary>
     /// Total number of projects scanned.

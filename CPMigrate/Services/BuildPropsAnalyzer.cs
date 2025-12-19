@@ -41,6 +41,7 @@ public class BuildPropsAnalyzer
                 // Load the project as XML only, no evaluation
                 var projectRoot = ProjectRootElement.Open(path);
 
+                // Analyze Properties
                 foreach (var propertyGroup in projectRoot.PropertyGroups)
                 {
                     // Skip conditional property groups for now to be safe
@@ -62,6 +63,38 @@ public class BuildPropsAnalyzer
                             property.Name,
                             property.Value,
                             path
+                        ));
+                    }
+                }
+
+                // Analyze Items (Currently only "Using")
+                foreach (var itemGroup in projectRoot.ItemGroups)
+                {
+                    if (!string.IsNullOrEmpty(itemGroup.Condition)) continue;
+
+                    foreach (var item in itemGroup.Items)
+                    {
+                        if (item.ItemType != "Using" && item.ItemType != "PackageReference") continue;
+                        if (!string.IsNullOrEmpty(item.Condition)) continue;
+
+                        // Create metadata dictionary
+                        var metadata = item.Metadata.ToDictionary(m => m.Name, m => m.Value);
+                        
+                        // Create a unique key for the item
+                        // Format: Type|Include|MetadataKey=MetadataValue;...
+                        var metadataString = string.Join(";", metadata.OrderBy(k => k.Key).Select(kv => $"{kv.Key}={kv.Value}"));
+                        var key = $"{item.ItemType}|{item.Include}|{metadataString}";
+
+                        if (!result.ItemOccurrences.ContainsKey(key))
+                        {
+                            result.ItemOccurrences[key] = new List<ProjectItem>();
+                        }
+
+                        result.ItemOccurrences[key].Add(new ProjectItem(
+                            item.ItemType,
+                            item.Include,
+                            path,
+                            metadata
                         ));
                     }
                 }

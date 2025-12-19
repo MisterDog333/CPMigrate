@@ -35,12 +35,12 @@ public class BuildPropsService
         // Filter for properties that are present in at least 60% of projects with the SAME value
         var threshold = Math.Ceiling(analysis.TotalProjects * 0.6);
         
-        // Group by Name, then find the most common Value for each Name
-        var candidates = analysis.PropertyOccurrences
-            .GroupBy(kv => kv.Value.First().Name) // Group by Property Name
+        // --- PROPERTIES ---
+        var propertyCandidates = analysis.PropertyOccurrences
+            .GroupBy(kv => kv.Value.First().Name) 
             .Select(g => 
             {
-                var mostCommon = g.MaxBy(kv => kv.Value.Count); // Find value with highest count
+                var mostCommon = g.MaxBy(kv => kv.Value.Count); 
                 return new 
                 { 
                     Property = mostCommon!.Value.First(), 
@@ -51,42 +51,79 @@ public class BuildPropsService
             .OrderBy(x => x.Property.Name)
             .ToList();
 
-        if (candidates.Count == 0)
+        // --- ITEMS (Using, PackageReference) ---
+        // Key format: Type|Include|MetadataString
+        var itemCandidates = analysis.ItemOccurrences
+            .GroupBy(kv => $"{kv.Value.First().ItemType}|{kv.Value.First().Include}") // Group by Type+Include
+            .Select(g => 
+            {
+                var mostCommon = g.MaxBy(kv => kv.Value.Count); // Find specific metadata set with highest count
+                return new 
+                { 
+                    Item = mostCommon!.Value.First(), 
+                    Count = mostCommon.Value.Count 
+                };
+            })
+            .Where(x => x.Count >= threshold)
+            .OrderBy(x => x.Item.ItemType).ThenBy(x => x.Item.Include)
+            .ToList();
+
+        if (propertyCandidates.Count == 0 && itemCandidates.Count == 0)
         {
-            _consoleService.Info("No common properties found (checked for >60% consensus).");
+            _consoleService.Info("No common properties or items found (checked for >60% consensus).");
             return ExitCodes.Success;
         }
 
-        _consoleService.Info($"Found {candidates.Count} common properties (consensus > 60%):");
-        foreach (var candidate in candidates)
+        if (propertyCandidates.Count > 0)
         {
-            var percentage = (double)candidate.Count / analysis.TotalProjects * 100;
-            _consoleService.Dim($"  - {candidate.Property.Name} = {candidate.Property.Value} [green]({candidate.Count}/{analysis.TotalProjects} projects, {percentage:F0}%)[/]");
+            _consoleService.Info($"Found {propertyCandidates.Count} common properties (consensus > 60%):");
+            foreach (var candidate in propertyCandidates)
+            {
+                var percentage = (double)candidate.Count / analysis.TotalProjects * 100;
+                _consoleService.Dim($"  - {candidate.Property.Name} = {candidate.Property.Value} [green]({candidate.Count}/{analysis.TotalProjects}, {percentage:F0}%)[/]");
+            }
+        }
+
+        if (itemCandidates.Count > 0)
+        {
+            _consoleService.Info($"Found {itemCandidates.Count} common items (consensus > 60%):");
+            foreach (var candidate in itemCandidates)
+            {
+                var percentage = (double)candidate.Count / analysis.TotalProjects * 100;
+                var meta = candidate.Item.Metadata != null && candidate.Item.Metadata.Count > 0 
+                    ? $" ({string.Join(", ", candidate.Item.Metadata.Select(m => $"{m.Key}={m.Value}"))})" 
+                    : "";
+                _consoleService.Dim($"  - [{candidate.Item.ItemType}] {candidate.Item.Include}{meta} [green]({candidate.Count}/{analysis.TotalProjects}, {percentage:F0}%)[/]");
+            }
         }
 
         if (options.DryRun)
         {
-            _consoleService.DryRun("Would create/update Directory.Build.props with these properties.");
-            _consoleService.DryRun("Would remove these properties from matching project files.");
+            _consoleService.DryRun("Would create/update Directory.Build.props with these items.");
+            _consoleService.DryRun("Would remove these items from matching project files.");
             return ExitCodes.Success;
         }
 
-        if (!options.Force && !_consoleService.AskConfirmation("Do you want to move these properties to Directory.Build.props?"))
+        if (!options.Force && !_consoleService.AskConfirmation("Do you want to move these to Directory.Build.props?"))
         {
             return ExitCodes.Success;
         }
 
-        var propsList = candidates.Select(c => c.Property).ToList();
+        var propsList = propertyCandidates.Select(c => c.Property).ToList();
+        var itemsList = itemCandidates.Select(c => c.Item).ToList();
         var buildPropsPath = Path.Combine(basePath, "Directory.Build.props");
         
-        await CreateOrUpdateBuildProps(buildPropsPath, propsList);
+        await CreateOrUpdateBuildProps(buildPropsPath, propsList, itemsList);
         await RemovePropertiesFromProjects(projectPaths, propsList);
+        await RemoveItemsFromProjects(projectPaths, itemsList);
 
-        _consoleService.Success($"Successfully moved {candidates.Count} properties to Directory.Build.props");
+        _consoleService.Success($"Successfully unified {propertyCandidates.Count} properties and {itemCandidates.Count} items.");
         return ExitCodes.Success;
     }
 
-    private async Task CreateOrUpdateBuildProps(string path, List<CPMigrate.Models.ProjectProperty> properties)
+    private async Task CreateOrUpdateBuildProps(string path, 
+        List<CPMigrate.Models.ProjectProperty> properties,
+        List<CPMigrate.Models.ProjectItem> items)
     {
         using var collection = new ProjectCollection();
         ProjectRootElement root;
@@ -101,31 +138,131 @@ public class BuildPropsService
             root = ProjectRootElement.Create(collection);
         }
 
-        var propertyGroup = root.PropertyGroups.FirstOrDefault(g => string.IsNullOrEmpty(g.Condition));
-        if (propertyGroup == null)
+        // Add Properties
+        if (properties.Count > 0)
         {
-            propertyGroup = root.AddPropertyGroup();
+            var propertyGroup = root.PropertyGroups.FirstOrDefault(g => string.IsNullOrEmpty(g.Condition));
+            if (propertyGroup == null) propertyGroup = root.AddPropertyGroup();
+
+            foreach (var prop in properties)
+            {
+                var existing = propertyGroup.Properties.FirstOrDefault(p => p.Name == prop.Name);
+                if (existing != null) existing.Value = prop.Value;
+                else propertyGroup.AddProperty(prop.Name, prop.Value);
+            }
         }
 
-        foreach (var prop in properties)
+        // Add Items
+        if (items.Count > 0)
         {
-            // Check if exists
-            var existing = propertyGroup.Properties.FirstOrDefault(p => p.Name == prop.Name);
-            if (existing != null)
+            var itemGroup = root.ItemGroups.FirstOrDefault(g => string.IsNullOrEmpty(g.Condition));
+            if (itemGroup == null) itemGroup = root.AddItemGroup();
+
+            foreach (var item in items)
             {
-                existing.Value = prop.Value;
-            }
-            else
-            {
-                propertyGroup.AddProperty(prop.Name, prop.Value);
+                // Check if exists (simplified check by Include)
+                var existing = itemGroup.Items.FirstOrDefault(i => i.ItemType == item.ItemType && i.Include == item.Include);
+                if (existing != null)
+                {
+                    // Remove existing to refresh metadata
+                    itemGroup.RemoveChild(existing);
+                }
+
+                var newItem = itemGroup.AddItem(item.ItemType, item.Include);
+                if (item.Metadata != null)
+                {
+                    foreach (var m in item.Metadata)
+                    {
+                        newItem.AddMetadata(m.Key, m.Value);
+                    }
+                }
             }
         }
 
         root.Save(path);
     }
 
+    private async Task RemoveItemsFromProjects(List<string> projectPaths, List<CPMigrate.Models.ProjectItem> itemsToRemove)
+    {
+        if (itemsToRemove.Count == 0) return;
+
+        // Lookup: Type|Include -> Metadata
+        var targetItems = itemsToRemove.ToDictionary(
+            i => $"{i.ItemType}|{i.Include}", 
+            i => i.Metadata
+        );
+
+        foreach (var projectPath in projectPaths)
+        {
+            using var collection = new ProjectCollection();
+            var root = ProjectRootElement.Open(projectPath, collection);
+            var modified = false;
+
+            foreach (var group in root.ItemGroups)
+            {
+                var items = group.Items.Where(i => targetItems.ContainsKey($"{i.ItemType}|{i.Include}")).ToList();
+                foreach (var item in items)
+                {
+                    var key = $"{item.ItemType}|{item.Include}";
+                    var targetMetadata = targetItems[key];
+                    
+                    // Verify Metadata Match
+                    bool metadataMatch = true;
+                    var itemMetadata = item.Metadata.ToDictionary(m => m.Name, m => m.Value);
+
+                    // Check if all target metadata exists and matches
+                    if (targetMetadata != null)
+                    {
+                        if (itemMetadata.Count != targetMetadata.Count) metadataMatch = false;
+                        else
+                        {
+                            foreach (var tm in targetMetadata)
+                            {
+                                if (!itemMetadata.TryGetValue(tm.Key, out var val) || val != tm.Value)
+                                {
+                                    metadataMatch = false; 
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else if (itemMetadata.Count > 0)
+                    {
+                        metadataMatch = false;
+                    }
+
+                    if (metadataMatch)
+                    {
+                        group.RemoveChild(item);
+                        modified = true;
+                    }
+                    else
+                    {
+                        _consoleService.Warning($"Skipped removing item '{item.ItemType} {item.Include}' in {Path.GetFileName(projectPath)}: Metadata mismatch.");
+                    }
+                }
+            }
+
+            // Remove empty item groups
+            var emptyGroups = root.ItemGroups.Where(g => g.Count == 0 && string.IsNullOrEmpty(g.Condition)).ToList();
+            foreach (var group in emptyGroups)
+            {
+                root.RemoveChild(group);
+                modified = true;
+            }
+
+            if (modified)
+            {
+                root.Save(projectPath);
+                _consoleService.Dim($"Updated {Path.GetFileName(projectPath)}");
+            }
+        }
+    }
+
     private async Task RemovePropertiesFromProjects(List<string> projectPaths, List<CPMigrate.Models.ProjectProperty> propertiesToRemove)
     {
+        if (propertiesToRemove.Count == 0) return;
+
         var propertiesSet = new HashSet<string>(propertiesToRemove.Select(p => p.Name));
 
         foreach (var projectPath in projectPaths)
