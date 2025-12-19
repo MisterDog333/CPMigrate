@@ -1,7 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
-using CPMigrate.Models;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation;
 
 namespace CPMigrate.Services;
 
@@ -72,18 +72,19 @@ public class BuildPropsService
         return ExitCodes.Success;
     }
 
-    private async Task CreateOrUpdateBuildProps(string path, List<ProjectProperty> properties)
+    private async Task CreateOrUpdateBuildProps(string path, List<CPMigrate.Models.ProjectProperty> properties)
     {
+        using var collection = new ProjectCollection();
         ProjectRootElement root;
         if (File.Exists(path))
         {
             _consoleService.Info($"Updating existing {Path.GetFileName(path)}...");
-            root = ProjectRootElement.Open(path);
+            root = ProjectRootElement.Open(path, collection);
         }
         else
         {
             _consoleService.Info($"Creating new {Path.GetFileName(path)}...");
-            root = ProjectRootElement.Create();
+            root = ProjectRootElement.Create(collection);
         }
 
         var propertyGroup = root.PropertyGroups.FirstOrDefault(g => string.IsNullOrEmpty(g.Condition));
@@ -109,13 +110,15 @@ public class BuildPropsService
         root.Save(path);
     }
 
-    private async Task RemovePropertiesFromProjects(List<string> projectPaths, List<ProjectProperty> propertiesToRemove)
+    private async Task RemovePropertiesFromProjects(List<string> projectPaths, List<CPMigrate.Models.ProjectProperty> propertiesToRemove)
     {
         var propertiesSet = new HashSet<string>(propertiesToRemove.Select(p => p.Name));
 
         foreach (var projectPath in projectPaths)
         {
-            var root = ProjectRootElement.Open(projectPath);
+            // Use a local collection to ensure no caching issues
+            using var collection = new ProjectCollection();
+            var root = ProjectRootElement.Open(projectPath, collection);
             var modified = false;
 
             foreach (var group in root.PropertyGroups)
@@ -125,13 +128,18 @@ public class BuildPropsService
                 foreach (var prop in props)
                 {
                     // Only remove if value matches (defensive, though our analysis said they all match)
-                    // Actually, if we are moving to Directory.Build.props, we can remove regardless of value 
-                    // IF we want to enforce the central value. But our analysis ensured they are identical.
                     var targetValue = propertiesToRemove.First(p => p.Name == prop.Name).Value;
                     if (prop.Value == targetValue)
                     {
                         group.RemoveChild(prop);
                         modified = true;
+                    }
+                    else
+                    {
+                        // Explicitly log why we aren't removing it, to help the user debug
+                        _consoleService.Warning($"Skipped removing '{prop.Name}' in {Path.GetFileName(projectPath)}: Value mismatch.");
+                        _consoleService.Dim($"  Expected: '{targetValue}'");
+                        _consoleService.Dim($"  Found:    '{prop.Value}'");
                     }
                 }
             }
