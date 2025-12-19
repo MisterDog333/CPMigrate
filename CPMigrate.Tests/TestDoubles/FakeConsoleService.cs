@@ -26,9 +26,15 @@ public class FakeConsoleService : IConsoleService
     public void WriteMarkup(string message) { }
     public void WriteLine(string message = "") { }
     public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged) { }
-    public void WriteMissionStatus(int step) { }
+    public List<int> MissionStatusSteps { get; } = new();
+    public void WriteMissionStatus(int step) => MissionStatusSteps.Add(step);
     public void WriteRiskScore(int conflictCount, int projectCount) { }
-    public string AskSelection(string title, IEnumerable<string> choices) => choices.First();
+    public string AskSelection(string title, IEnumerable<string> choices)
+    {
+        if (SelectionResponses.Count > 0)
+            return SelectionResponses.Dequeue();
+        return choices.First();
+    }
     public bool AskConfirmation(string message) => ConfirmationResponse;
     public string AskText(string prompt, string defaultValue = "")
     {
@@ -36,7 +42,13 @@ public class FakeConsoleService : IConsoleService
             return TextResponses.Dequeue();
         return defaultValue;
     }
-    public int AskInt(string prompt, int defaultValue) => defaultValue;
+    public Queue<int> IntResponses { get; set; } = new();
+    public int AskInt(string prompt, int defaultValue)
+    {
+        if (IntResponses.Count > 0)
+            return IntResponses.Dequeue();
+        return defaultValue;
+    }
     public void WriteRollbackPreview(IEnumerable<string> filesToRestore, string? propsFilePath) { }
     public void WriteAnalysisHeader(int projectCount, int packageCount) { }
     public void WriteAnalyzerResult(AnalyzerResult result) { }

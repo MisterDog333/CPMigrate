@@ -40,13 +40,13 @@ public class Options
     [Option('s', "solution",
         HelpText = "Specifies the directory to search for .sln files. If this option is provided " +
                    "the project file location option will be ignored.", Required = false, Default = ".")]
-    public string SolutionFileDir { get; set; } = string.Empty;
+    public string SolutionFileDir { get; set; } = ".";
 
     [Option('p', "project", HelpText = "Specifies the directory to search for project files (.csproj, .fsproj, .vbproj).")]
     public string ProjectFileDir { get; set; } = string.Empty;
 
     [Option('o', "output-dir", HelpText = "The props file output directory.", Default = ".")]
-    public string OutputDir { get; set; } = string.Empty;
+    public string OutputDir { get; set; } = ".";
 
     [Option('k', "keep-attrs", Default = false,
         HelpText = "Keeps the 'Version' attribute in the project files.")]

@@ -260,8 +260,9 @@ public class InteractiveService : IInteractiveService
 
             if (selection == EnterPathManually)
             {
-                var path = _console.AskText("Enter path manually", ".");
-                return string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path);
+                var path = _console.AskText("Enter path manually (or leave empty to cancel)", ".");
+                if (string.IsNullOrWhiteSpace(path) || path == ".") return null;
+                return Path.GetFullPath(path);
             }
 
             if (selection.StartsWith("🎯 Use current"))
