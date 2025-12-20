@@ -179,35 +179,47 @@ public class InteractiveService : IInteractiveService
 
     private string AskQuickAction(EnvContext ctx)
     {
-        var choices = new List<string>();
+        var migrationActions = new List<string>();
+        var maintenanceActions = new List<string>();
+        var systemActions = new List<string>();
 
+        // 1. Migration Actions
         if (!ctx.IsCpm && ctx.ProjectCount > 0)
         {
             var label = ctx.ConflictCount > 0 
                 ? $"🚀 Fast-Track Migration (Auto-resolve {ctx.ConflictCount} conflicts)" 
                 : "⚡️ Migrate to Central Package Management (Clean Path)";
-            choices.Add(label);
+            migrationActions.Add(label);
             
             if (ctx.ConflictCount > 0)
-                choices.Add("🛠  Migrate & Review Conflicts Individually");
+                migrationActions.Add("🛠  Migrate & Review Conflicts Individually");
         }
         else if (ctx.IsCpm)
         {
-            choices.Add("🔍 Analyze current CPM setup for issues");
-            choices.Add("🛡  Security Audit (Scan for vulnerabilities)");
+            migrationActions.Add("🔍 Analyze current CPM setup for issues");
+            migrationActions.Add("🛡  Security Audit (Scan for vulnerabilities)");
         }
+        
+        migrationActions.Add("⚙️  Custom Migration (Manual Setup)");
 
-        choices.Add("📦 Batch migrate multiple solutions");
+        // 2. Maintenance Actions
+        maintenanceActions.Add(ModeUnifyProps);
+        maintenanceActions.Add("📦 Batch migrate multiple solutions");
         
         if (ctx.Backups.Count > 0)
-            choices.Add("↩️  Rollback to a previous state");
+            maintenanceActions.Add("↩️  Rollback to a previous state");
 
-        choices.Add(ModeUnifyProps); // Add the new Unify option
-        choices.Add("💾 Manage Backups");
-        choices.Add("⚙️  Custom Migration (Manual Setup)");
-        choices.Add("Exit");
+        maintenanceActions.Add("💾 Manage Backups");
 
-        return _console.AskSelection("What's the mission?", choices);
+        // 3. System
+        systemActions.Add("Exit");
+
+        var groups = new Dictionary<string, IEnumerable<string>>();
+        if (migrationActions.Count > 0) groups.Add("MIGRATION ACTIONS", migrationActions);
+        if (maintenanceActions.Count > 0) groups.Add("REPOSITORY MAINTENANCE", maintenanceActions);
+        groups.Add("SYSTEM", systemActions);
+
+        return _console.AskGroupedSelection("What's the mission?", groups);
     }
 
     private string AskMode()

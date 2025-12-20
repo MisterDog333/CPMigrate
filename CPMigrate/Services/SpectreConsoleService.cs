@@ -309,6 +309,25 @@ public class SpectreConsoleService : IConsoleService
         return AnsiConsole.Prompt(prompt);
     }
 
+    public string AskGroupedSelection(string title, Dictionary<string, IEnumerable<string>> groups)
+    {
+        var prompt = new SelectionPrompt<string>()
+                .Title($"[deeppink1]{EscapeMarkup(title)}[/]")
+                .PageSize(15)
+                .MoreChoicesText("[grey](Move up and down to reveal more choices)[/]")
+                .HighlightStyle(new Style(CyberColors.Secondary));
+
+        foreach (var group in groups)
+        {
+            // Escape group name but apply style manually if needed, 
+            // though Spectre usually styles groups automatically.
+            // We'll trust Spectre's default group styling for now but use brackets for emphasis if we want.
+            prompt.AddChoiceGroup($"[grey]{group.Key}[/]", group.Value);
+        }
+
+        return AnsiConsole.Prompt(prompt);
+    }
+
     public void WriteStatusDashboard(string directory, List<string> solutions, List<BackupSetInfo> backups, bool isGitRepo, bool hasUnstaged, Dictionary<string, int> targetFrameworks)
     {
         var grid = new Grid();

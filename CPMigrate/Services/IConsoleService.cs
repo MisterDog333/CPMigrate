@@ -24,6 +24,7 @@ public interface IConsoleService
     void WriteMissionStatus(int step);
     void WriteRiskScore(int conflictCount, int projectCount);
     string AskSelection(string title, IEnumerable<string> choices);
+    string AskGroupedSelection(string title, Dictionary<string, IEnumerable<string>> groups);
     bool AskConfirmation(string message);
     string AskText(string prompt, string defaultValue = "");
     int AskInt(string prompt, int defaultValue);
