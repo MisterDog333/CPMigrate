@@ -531,3 +531,11 @@ public class InteractiveService : IInteractiveService
         AnsiConsole.Write(panel);
         _console.WriteLine();
     }
+
+    private bool AskConfirmation()
+    {
+        return _console.AskConfirmation("Proceed?");
+    }
+    
+    private static string EscapeMarkup(string text) => Markup.Escape(text);
+}
